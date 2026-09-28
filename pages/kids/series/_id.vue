@@ -1,10 +1,7 @@
 <template>
   <div class="w-full h-full overflow-y-auto px-4 pt-4 pb-8">
     <div class="flex items-center mb-6">
-      <div class="w-10 h-10 shrink-0 flex items-center justify-center -ml-2" @click="$router.back()">
-        <span class="material-symbols text-3xl">arrow_back</span>
-      </div>
-      <kids-series-tile v-if="series" :series="seriesWithBooks" :width="88" class="ml-1 pointer-events-none" />
+      <kids-series-tile v-if="series" :series="seriesWithBooks" :width="88" :show-name="false" class="pointer-events-none" />
       <h1 class="flex-grow text-2xl font-semibold px-4 line-clamp-2">{{ series ? series.name : '' }}</h1>
       <div class="w-14 h-14 shrink-0 flex items-center justify-center rounded-full bg-bg-hover" @click="toggleFavorite">
         <span class="material-symbols text-4xl text-error" :class="{ fill: isFavorite }">favorite</span>

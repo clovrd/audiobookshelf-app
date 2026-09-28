@@ -2,9 +2,9 @@
   <div class="shrink-0" :style="width ? { width: width + 'px' } : null" @click="$emit('click', series)">
     <div class="relative w-full rounded-2xl overflow-hidden shadow-lg" :class="showLogo ? 'bg-white' : 'bg-bg-hover'" style="padding-top: 100%">
       <img v-if="imageSrc" :src="imageSrc" class="absolute inset-0 w-full h-full" :class="showLogo ? 'object-contain p-2' : 'object-cover'" loading="lazy" @error="logoFailed = true" />
-      <span v-if="favorite" class="material-symbols fill absolute top-1.5 right-1.5 text-2xl text-error drop-shadow">favorite</span>
+      <span v-if="favorite" class="material-symbols fill absolute top-1.5 right-1.5 w-8 h-8 flex items-center justify-center rounded-full bg-white text-xl text-error shadow">favorite</span>
     </div>
-    <p class="mt-1.5 text-sm text-center truncate">{{ series.name }}</p>
+    <p v-if="showName" class="mt-1.5 text-sm text-center truncate">{{ series.name }}</p>
   </div>
 </template>
 
@@ -19,7 +19,11 @@ export default {
     },
     // Fixed width in px, otherwise fills the grid cell
     width: Number,
-    favorite: Boolean
+    favorite: Boolean,
+    showName: {
+      type: Boolean,
+      default: true
+    }
   },
   data() {
     return {
@@ -32,7 +36,9 @@ export default {
       return !!this.logoUrl && !this.logoFailed
     },
     firstBook() {
-      return sortSeriesBooks(this.series.books || [], this.series.id)[0] || null
+      // First book in series order that has a cover
+      const books = sortSeriesBooks(this.series.books || [], this.series.id)
+      return books.find((b) => b.media?.coverPath) || books[0] || null
     },
     fallbackCover() {
       const placeholder = `${this.$store.state.routerBasePath}/book_placeholder.jpg`
