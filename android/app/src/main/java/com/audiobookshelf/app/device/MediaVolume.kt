@@ -29,6 +29,18 @@ object MediaVolume {
     audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, index, 0)
   }
 
+  /** Current volume step, 0 is mute */
+  fun getStep(context: Context): Int = audioManager(context).getStreamVolume(AudioManager.STREAM_MUSIC)
+
+  /** Number of volume steps above mute, depends on the device */
+  fun getMaxStep(context: Context): Int = audioManager(context).getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+
+  fun setStep(context: Context, step: Int) {
+    val audioManager = audioManager(context)
+    val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, step.coerceIn(0, max), 0)
+  }
+
   fun adjust(context: Context, raise: Boolean) {
     val direction = if (raise) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER
     audioManager(context).adjustStreamVolume(AudioManager.STREAM_MUSIC, direction, 0)

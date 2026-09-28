@@ -300,6 +300,11 @@ export default ({ store, app }, inject) => {
 
   // Android only
   App.addListener('backButton', async ({ canGoBack }) => {
+    // The kids mode handles back itself and never leaves (components/kids/Shell.vue)
+    if (app.router?.currentRoute?.path.startsWith('/kids')) {
+      eventBus.$emit('kids-back')
+      return
+    }
     if (store.state.globals.isModalOpen) {
       eventBus.$emit('close-modal')
       return

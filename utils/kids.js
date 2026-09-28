@@ -103,3 +103,41 @@ export async function loadSeriesDescription(nativeHttp, series) {
   }
   return seriesDescriptionCache.get(series.id)
 }
+
+/**
+ * The series of a book with its sequence. Full items have metadata.series, minified items only
+ * seriesName like "Bibi und Tina #7, Other #2".
+ *
+ * @param {Object} libraryItem
+ * @param {string} [seriesId] preferred series when the book is in several
+ * @returns {{ id: string|null, name: string, sequence: string|null }|null}
+ */
+export function getItemSeries(libraryItem, seriesId = null) {
+  const metadata = libraryItem?.media?.metadata || libraryItem?.mediaMetadata || {}
+  if (Array.isArray(metadata.series) && metadata.series.length) {
+    const series = metadata.series.find((s) => s.id === seriesId) || metadata.series[0]
+    return { id: series.id, name: series.name, sequence: series.sequence ?? null }
+  }
+  if (metadata.series?.name) {
+    return { id: metadata.series.id || null, name: metadata.series.name, sequence: metadata.series.sequence ?? null }
+  }
+  if (metadata.seriesName) {
+    const match = metadata.seriesName.split(', ')[0].match(/^(.*?)(?:\s+#\s*(\S+))?$/)
+    return { id: null, name: match[1], sequence: match[2] ?? null }
+  }
+  return null
+}
+
+/** 1234 -> "20:34", 4000 -> "1:06:40" */
+export function formatClock(seconds) {
+  const total = Math.max(0, Math.floor(seconds || 0))
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = String(total % 60).padStart(2, '0')
+  return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`
+}
+
+/** Whole minutes, at least 1 */
+export function toMinutes(seconds) {
+  return Math.max(1, Math.round((seconds || 0) / 60))
+}

@@ -1,34 +1,44 @@
 <template>
-  <div class="w-full h-full overflow-y-auto px-4 pt-4 pb-8">
-    <div class="flex items-center mb-6">
-      <kids-series-tile v-if="series" :series="seriesWithBooks" :width="88" :show-name="false" class="pointer-events-none" />
-      <h1 class="flex-grow text-2xl font-semibold px-4 line-clamp-2"><kids-syllable-text v-if="series" :text="series.name" :override="syllablesOverride" /></h1>
-      <div class="w-14 h-14 shrink-0 flex items-center justify-center rounded-full bg-bg-hover" @click="toggleFavorite">
-        <span class="material-symbols text-4xl text-error" :class="{ fill: isFavorite }">favorite</span>
-      </div>
+  <div class="kids k-page no-scrollbar">
+    <div class="k-series__top">
+      <button class="k-btn k-btn--sunken k-series__back" @click="$router.push('/kids')">
+        <span class="material-symbols" style="font-size: 36px">arrow_back_ios_new</span>
+      </button>
     </div>
 
-    <div v-if="loading" class="flex justify-center py-20">
-      <ui-loading-indicator />
-    </div>
-    <div v-else class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr))">
-      <kids-book-tile v-for="item in books" :key="item.id" :library-item="item" :badge="sequenceLabel(item)" @click="kidsPlay" />
+    <div class="k-series__body">
+      <div class="k-series__side">
+        <template v-if="series">
+          <kids-series-tile :series="seriesWithBooks" :show-name="false" class="k-series__cover" />
+          <h1 class="k-series__name learner"><kids-syllable-text :text="series.name" :override="syllablesOverride" /></h1>
+          <div class="k-series__actions">
+            <button class="k-btn k-series__favorite" :class="isFavorite ? 'k-series__favorite--on' : 'k-btn--outline'" @click="toggleFavorite">
+              <span class="material-symbols" :class="{ fill: isFavorite }" style="font-size: 44px">favorite</span>
+            </button>
+            <span v-if="!loading" class="k-series__count num">{{ books.length }} Folgen</span>
+          </div>
+        </template>
+      </div>
+
+      <div class="k-series__episodes">
+        <div v-if="loading" class="k-series__loading"><ui-loading-indicator /></div>
+        <div v-else class="k-series__grid">
+          <kids-episode-tile v-for="item in books" :key="item.id" :library-item="item" :sequence="sequenceOf(item)" />
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import kidsPlayback from '@/mixins/kidsPlayback'
 import { getSeriesSequence, parseSeriesSyllables, sortSeriesBooks } from '@/utils/kids'
 
 export default {
-  mixins: [kidsPlayback],
   data() {
     return {
       loading: false,
       series: null,
-      books: [],
-      favoriteIds: []
+      books: []
     }
   },
   computed: {
@@ -41,23 +51,27 @@ export default {
     syllablesOverride() {
       return parseSeriesSyllables(this.series?.description)
     },
+    favoriteIds() {
+      return this.$store.state.kids.favoriteSeriesIds
+    },
     isFavorite() {
       return this.favoriteIds.includes(this.seriesId)
     }
   },
   methods: {
-    sequenceLabel(item) {
+    sequenceOf(item) {
       return getSeriesSequence(item, this.seriesId)
     },
     async toggleFavorite() {
       await this.$hapticsImpact()
       const ids = await this.$localStore.getKidsFavoriteSeries()
-      this.favoriteIds = ids.includes(this.seriesId) ? ids.filter((id) => id !== this.seriesId) : [...ids, this.seriesId]
-      await this.$localStore.setKidsFavoriteSeries(this.favoriteIds)
+      const favoriteSeriesIds = ids.includes(this.seriesId) ? ids.filter((id) => id !== this.seriesId) : [...ids, this.seriesId]
+      this.$store.commit('kids/set', { favoriteSeriesIds })
+      await this.$localStore.setKidsFavoriteSeries(favoriteSeriesIds)
     },
     async load() {
       this.loading = true
-      this.favoriteIds = await this.$localStore.getKidsFavoriteSeries()
+      this.$store.commit('kids/set', { favoriteSeriesIds: await this.$localStore.getKidsFavoriteSeries() })
 
       this.series = await this.$nativeHttp.get(`/api/series/${this.seriesId}`).catch((error) => {
         console.error('[kids] Failed to fetch series', error)
@@ -68,7 +82,7 @@ export default {
         return
       }
 
-      // Not minified so the items include their series sequence
+      // Not minified so the items include their series sequence and duration
       const filter = `series.${this.$encode(this.seriesId)}`
       const payload = await this.$nativeHttp.get(`/api/libraries/${this.series.libraryId}/items?filter=${encodeURIComponent(filter)}&limit=1000&page=0`).catch((error) => {
         console.error('[kids] Failed to fetch series books', error)
@@ -83,3 +97,78 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.k-page {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 0 40px 160px;
+}
+.k-series__top {
+  height: 104px;
+  display: flex;
+  align-items: center;
+}
+.k-series__back {
+  width: 72px;
+  height: 72px;
+}
+.k-series__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 40px;
+}
+.k-series__side {
+  flex: 0 1 340px;
+  position: sticky;
+  top: 0;
+}
+.k-series__cover {
+  width: 100%;
+}
+.k-series__cover >>> .k-press:active,
+.k-series__cover.k-press:active {
+  transform: none;
+}
+.k-series__name {
+  margin-top: 20px;
+  font-size: 40px;
+  line-height: 1.1;
+}
+.k-series__actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 20px;
+}
+.k-series__favorite {
+  width: 88px;
+  height: 88px;
+}
+.k-series__favorite--on {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+.k-series__count {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+.k-series__episodes {
+  flex: 1 1 480px;
+  min-width: 0;
+  border-top: 2px solid var(--color-rule);
+}
+.k-series__loading {
+  display: flex;
+  justify-content: center;
+  padding: 80px 0;
+}
+.k-series__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  column-gap: 28px;
+}
+</style>

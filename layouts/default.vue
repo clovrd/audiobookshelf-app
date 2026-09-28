@@ -1,10 +1,12 @@
 <template>
   <div class="w-full layout-wrapper bg-bg">
-    <app-appbar />
-    <div id="content" class="overflow-hidden relative" :class="isPlayerOpen ? 'playerOpen' : ''">
+    <app-appbar v-if="!isKidsMode" />
+    <div id="content" class="overflow-hidden relative" :class="isKidsMode ? 'kids-content' : isPlayerOpen ? 'playerOpen' : ''">
       <Nuxt :key="currentLang" />
     </div>
-    <app-audio-player-container ref="streamContainer" />
+    <!-- Stays mounted in the kids mode because it connects to the native player, the kids UI has its own player -->
+    <app-audio-player-container v-show="!isKidsMode" ref="streamContainer" />
+    <kids-shell v-if="isKidsMode" />
     <modals-libraries-modal />
     <modals-playlists-add-create-modal />
     <modals-select-local-folder-modal />
@@ -83,6 +85,9 @@ export default {
   computed: {
     isPlayerOpen() {
       return this.$store.getters['getIsPlayerOpen']
+    },
+    isKidsMode() {
+      return this.$route.path.startsWith('/kids')
     },
     routeName() {
       return this.$route.name

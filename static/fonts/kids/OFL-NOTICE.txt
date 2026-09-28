@@ -1,0 +1,3 @@
+Andika (https://software.sil.org/andika/) and Public Sans (https://public-sans.digital.gov/)
+are licensed under the SIL Open Font License 1.1: https://openfontlicense.org
+Used by the kids UI (components/kids).

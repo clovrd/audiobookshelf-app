@@ -35,20 +35,20 @@ class AbsDeviceControls : Plugin() {
     private const val MIN_LINEAR_BRIGHTNESS = 1f / 255f
   }
 
-  private var lastVolume: Double? = null
+  private var lastVolumeStep: Int? = null
 
   private val volumeReceiver =
           object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-              val volume = MediaVolume.get(context)
-              if (volume == lastVolume) return
-              lastVolume = volume
-              notifyListeners("onVolumeChanged", volumeResult(volume))
+              val step = MediaVolume.getStep(context)
+              if (step == lastVolumeStep) return
+              lastVolumeStep = step
+              notifyListeners("onVolumeChanged", volumeResult())
             }
           }
 
   override fun load() {
-    lastVolume = MediaVolume.get(context)
+    lastVolumeStep = MediaVolume.getStep(context)
     ContextCompat.registerReceiver(context, volumeReceiver, IntentFilter(VOLUME_CHANGED_ACTION), ContextCompat.RECEIVER_EXPORTED)
   }
 
@@ -60,22 +60,35 @@ class AbsDeviceControls : Plugin() {
     }
   }
 
-  private fun volumeResult(volume: Double): JSObject {
+  /** { volume: 0.0-1.0, step: current step (0 = mute), maxStep: number of steps } */
+  private fun volumeResult(): JSObject {
     val ret = JSObject()
-    ret.put("volume", volume)
+    ret.put("volume", MediaVolume.get(context))
+    ret.put("step", MediaVolume.getStep(context))
+    ret.put("maxStep", MediaVolume.getMaxStep(context))
     return ret
   }
 
   @PluginMethod
   fun getVolume(call: PluginCall) {
-    call.resolve(volumeResult(MediaVolume.get(context)))
+    call.resolve(volumeResult())
   }
 
   @PluginMethod
   fun setVolume(call: PluginCall) {
     val volume = call.getDouble("volume") ?: return call.reject("volume is required")
     MediaVolume.set(context, volume)
-    call.resolve(volumeResult(MediaVolume.get(context)))
+    lastVolumeStep = MediaVolume.getStep(context)
+    call.resolve(volumeResult())
+  }
+
+  /** Sets a volume step directly, 0 mutes */
+  @PluginMethod
+  fun setVolumeStep(call: PluginCall) {
+    val step = call.getInt("step") ?: return call.reject("step is required")
+    MediaVolume.setStep(context, step)
+    lastVolumeStep = MediaVolume.getStep(context)
+    call.resolve(volumeResult())
   }
 
   /** Returns { brightness: 0.0-1.0 } or { brightness: null } when following the system brightness */
