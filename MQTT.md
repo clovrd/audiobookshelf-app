@@ -24,7 +24,7 @@ It is up while the app is open or audio is playing; when Android stops the playe
 |---|---|---|
 | `play` / `pause` / `toggle` | – | Resume / pause / toggle the current item |
 | `stop` | – | Close the playback session (like closing the player) |
-| `volume` | 0.0–1.0 or 0–100 | Set the device media volume |
+| `volume` | 0.0–1.0 or 0–100 | Set the device media volume (nearest step; only `0` mutes, anything above is at least the lowest step) |
 | `volume_up` / `volume_down` | – | One volume step |
 | `jump_forward` / `jump_backward` | seconds, optional | Jump; defaults to the app's jump setting |
 | `seek` | seconds | Seek to an absolute position |

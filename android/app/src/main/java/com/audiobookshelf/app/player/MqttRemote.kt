@@ -302,11 +302,15 @@ class MqttRemote(private val service: PlayerNotificationService) {
     mainHandler.postDelayed({ publishStateIfChanged(true) }, 300)
   }
 
-  /** Accepts 0.0-1.0, or 0-100 as a percentage. Uses the device media volume. */
+  /**
+   * Accepts 0.0-1.0, or 0-100 as a percentage. Uses the device media volume, which only has a few steps.
+   * Only 0 mutes: any value above 0 is at least the lowest audible step instead of rounding down to mute.
+   */
   private fun setVolume(value: Double) {
     val fraction = (if (value > 1.0) value / 100.0 else value).coerceIn(0.0, 1.0)
     val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, (fraction * max).roundToInt(), 0)
+    val index = if (fraction > 0) (fraction * max).roundToInt().coerceAtLeast(1) else 0
+    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, index, 0)
   }
 
   private fun getVolume(): Double {
