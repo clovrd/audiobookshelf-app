@@ -1,14 +1,13 @@
 package com.audiobookshelf.app.player
 
 import android.annotation.SuppressLint
-import android.content.Context
-import android.media.AudioManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import com.audiobookshelf.app.device.DeviceManager
+import com.audiobookshelf.app.device.MediaVolume
 import com.audiobookshelf.app.plugins.AbsLogger
 import com.google.android.exoplayer2.Player
 import org.eclipse.paho.client.mqttv3.IMqttActionListener
@@ -59,7 +58,6 @@ class MqttRemote(private val service: PlayerNotificationService) {
   }
 
   private val mainHandler = Handler(Looper.getMainLooper())
-  private val audioManager = service.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
   @Volatile private var client: MqttAsyncClient? = null
   private var config: Config? = null
@@ -273,9 +271,10 @@ class MqttRemote(private val service: PlayerNotificationService) {
       "pause" -> if (session != null) service.pause()
       "toggle", "play_pause" -> if (session != null) service.playPause()
       "stop" -> if (session != null) service.closePlayback()
-      "volume" -> value?.let { setVolume(it) }
-      "volume_up" -> audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, 0)
-      "volume_down" -> audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, 0)
+      // Accepts 0.0-1.0, or 0-100 as a percentage
+      "volume" -> value?.let { MediaVolume.set(service, if (it > 1.0) it / 100.0 else it) }
+      "volume_up" -> MediaVolume.adjust(service, true)
+      "volume_down" -> MediaVolume.adjust(service, false)
       "jump_forward" ->
               if (session != null) {
                 if (value != null) service.seekForward((value * 1000).toLong()) else service.jumpForward()
@@ -302,24 +301,6 @@ class MqttRemote(private val service: PlayerNotificationService) {
     mainHandler.postDelayed({ publishStateIfChanged(true) }, 300)
   }
 
-  /**
-   * Accepts 0.0-1.0, or 0-100 as a percentage. Uses the device media volume, which only has a few steps.
-   * Only 0 mutes: any value above 0 is at least the lowest audible step instead of rounding down to mute.
-   */
-  private fun setVolume(value: Double) {
-    val fraction = (if (value > 1.0) value / 100.0 else value).coerceIn(0.0, 1.0)
-    val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-    val index = if (fraction > 0) (fraction * max).roundToInt().coerceAtLeast(1) else 0
-    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, index, 0)
-  }
-
-  private fun getVolume(): Double {
-    val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-    if (max <= 0) return 0.0
-    val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-    return (current.toDouble() / max * 100).roundToInt() / 100.0
-  }
-
   private fun buildState(): JSONObject {
     val state = JSONObject()
     val session = service.currentPlaybackSession
@@ -335,7 +316,7 @@ class MqttRemote(private val service: PlayerNotificationService) {
             }
     state.put("state", status)
     state.put("playing", player.isPlaying)
-    state.put("volume", getVolume())
+    state.put("volume", MediaVolume.get(service))
     state.put("mediaPlayer", service.getMediaPlayer())
 
     if (session != null) {

@@ -1,17 +1,37 @@
 // Helpers for the kids UI (pages/kids)
 
 /**
- * Series logos are not stored by ABS, so they are referenced from the series description
- * with a line like "logo: http://nas.local/logos/bibi-tina.png"
+ * Kids UI settings ABS has no fields for are stored as "key: value" lines in the series description
+ *
+ * @param {string} description
+ * @param {string} key
+ * @returns {string|null}
+ */
+function parseDescriptionField(description, key) {
+  if (!description) return null
+  const text = description.replace(/<[^>]+>/g, '\n')
+  const match = text.match(new RegExp(`^\\s*${key}\\s*:\\s*(.+?)\\s*$`, 'im'))
+  return match ? match[1] : null
+}
+
+/**
+ * Series logo, e.g. "logo: http://nas.local/logos/bibi-tina.png"
  *
  * @param {string} description
  * @returns {string|null}
  */
 export function parseSeriesLogo(description) {
-  if (!description) return null
-  const text = description.replace(/<[^>]+>/g, '\n')
-  const match = text.match(/^\s*logo\s*:\s*(\S+)\s*$/im)
-  return match ? match[1] : null
+  return parseDescriptionField(description, 'logo')?.split(/\s/)[0] || null
+}
+
+/**
+ * Manual syllables for the series name when the automatic ones are wrong, e.g. "silben: Schleich - Horse Club"
+ *
+ * @param {string} description
+ * @returns {string|null}
+ */
+export function parseSeriesSyllables(description) {
+  return parseDescriptionField(description, 'silben')
 }
 
 /**
@@ -56,7 +76,7 @@ export function sortSeriesBooks(libraryItems, seriesId) {
   })
 }
 
-// Series descriptions fetched for the logo, cached for the app session
+// Series descriptions fetched for the logo and syllables, cached for the app session
 const seriesDescriptionCache = new Map()
 
 /**
@@ -66,9 +86,9 @@ const seriesDescriptionCache = new Map()
  * @param {Object} series
  * @returns {Promise<string|null>}
  */
-export async function loadSeriesLogo(nativeHttp, series) {
+export async function loadSeriesDescription(nativeHttp, series) {
   if (!series) return null
-  if (series.description !== undefined) return parseSeriesLogo(series.description)
+  if (series.description !== undefined) return series.description
 
   if (!seriesDescriptionCache.has(series.id)) {
     const request = nativeHttp
@@ -81,5 +101,5 @@ export async function loadSeriesLogo(nativeHttp, series) {
       })
     seriesDescriptionCache.set(series.id, request)
   }
-  return parseSeriesLogo(await seriesDescriptionCache.get(series.id))
+  return seriesDescriptionCache.get(series.id)
 }

@@ -6,12 +6,12 @@
         <span class="material-symbols fill text-xl leading-none text-error">favorite</span>
       </div>
     </div>
-    <p v-if="showName" class="mt-1.5 text-sm text-center truncate">{{ series.name }}</p>
+    <p v-if="showName" class="mt-1.5 text-sm text-center truncate"><kids-syllable-text :text="series.name" :override="syllablesOverride" /></p>
   </div>
 </template>
 
 <script>
-import { loadSeriesLogo, sortSeriesBooks } from '@/utils/kids'
+import { loadSeriesDescription, parseSeriesLogo, parseSeriesSyllables, sortSeriesBooks } from '@/utils/kids'
 
 export default {
   props: {
@@ -30,7 +30,8 @@ export default {
   data() {
     return {
       logoUrl: null,
-      logoFailed: false
+      logoFailed: false,
+      syllablesOverride: null
     }
   },
   computed: {
@@ -43,7 +44,7 @@ export default {
       return books.find((b) => b.media?.coverPath) || books[0] || null
     },
     fallbackCover() {
-      const placeholder = `${this.$store.state.routerBasePath}/book_placeholder.jpg`
+      const placeholder = '/book_placeholder.jpg'
       return this.$store.getters['globals/getLibraryItemCoverSrc'](this.firstBook, placeholder)
     },
     imageSrc() {
@@ -52,17 +53,19 @@ export default {
   },
   watch: {
     'series.id'() {
-      this.loadLogo()
+      this.loadDescription()
     }
   },
   methods: {
-    async loadLogo() {
+    async loadDescription() {
       this.logoFailed = false
-      this.logoUrl = await loadSeriesLogo(this.$nativeHttp, this.series)
+      const description = await loadSeriesDescription(this.$nativeHttp, this.series)
+      this.logoUrl = parseSeriesLogo(description)
+      this.syllablesOverride = parseSeriesSyllables(description)
     }
   },
   mounted() {
-    this.loadLogo()
+    this.loadDescription()
   }
 }
 </script>

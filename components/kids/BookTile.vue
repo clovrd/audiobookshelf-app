@@ -39,7 +39,7 @@ export default {
       return this.libraryItem.media?.metadata?.title || ''
     },
     coverSrc() {
-      const placeholder = `${this.$store.state.routerBasePath}/book_placeholder.jpg`
+      const placeholder = '/book_placeholder.jpg'
       return this.$store.getters['globals/getLibraryItemCoverSrc'](this.libraryItem, placeholder)
     },
     userProgress() {
