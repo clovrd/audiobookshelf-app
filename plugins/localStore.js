@@ -145,6 +145,30 @@ class LocalStorage {
   }
 
   /**
+   * Series ids the kids marked as favorite, stored only on this device
+   *
+   * @returns {Promise<string[]>}
+   */
+  async getKidsFavoriteSeries() {
+    try {
+      const obj = (await Preferences.get({ key: 'kidsFavoriteSeries' })) || {}
+      const ids = obj.value ? JSON.parse(obj.value) : []
+      return Array.isArray(ids) ? ids : []
+    } catch (error) {
+      console.error('[LocalStorage] Failed to get kids favorite series', error)
+      return []
+    }
+  }
+
+  async setKidsFavoriteSeries(seriesIds) {
+    try {
+      await Preferences.set({ key: 'kidsFavoriteSeries', value: JSON.stringify(seriesIds) })
+    } catch (error) {
+      console.error('[LocalStorage] Failed to set kids favorite series', error)
+    }
+  }
+
+  /**
    * Get preference value by key
    * 
    * @param {string} key 

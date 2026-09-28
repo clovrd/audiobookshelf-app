@@ -99,6 +99,11 @@ export default {
         ].concat(items)
       } else {
         items.push({
+          icon: 'child_care',
+          text: this.$strings.ButtonKids,
+          to: '/kids'
+        })
+        items.push({
           icon: 'person',
           text: this.$strings.HeaderAccount,
           to: '/account'
