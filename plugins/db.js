@@ -118,6 +118,11 @@ class DbService {
     return AbsDatabase.updateDeviceSettings(payload)
   }
 
+  // Returns { status: 'disabled'|'connecting'|'connected'|'disconnected'|'error', message, baseTopic }
+  getMqttStatus() {
+    return AbsDatabase.getMqttStatus()
+  }
+
   getMediaItemHistory(mediaId) {
     return AbsDatabase.getMediaItemHistory({ mediaId })
   }

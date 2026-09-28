@@ -113,6 +113,7 @@ class PlayerNotificationService : MediaBrowserServiceCompat() {
 
   lateinit var sleepTimerManager: SleepTimerManager
   lateinit var mediaProgressSyncer: MediaProgressSyncer
+  lateinit var mqttRemote: MqttRemote
 
   private var notificationId = 10
   private var channelId = "audiobookshelf_channel"
@@ -197,6 +198,7 @@ class PlayerNotificationService : MediaBrowserServiceCompat() {
     }
 
     Log.d(tag, "onDestroy")
+    mqttRemote.stop()
     isStarted = false
     isClosed = true
     DeviceManager.widgetUpdater?.onPlayerChanged(this)
@@ -383,6 +385,9 @@ class PlayerNotificationService : MediaBrowserServiceCompat() {
 
     initializeMPlayer()
     currentPlayer = mPlayer
+
+    mqttRemote = MqttRemote(this)
+    mqttRemote.reconfigure()
   }
 
   private fun initializeMPlayer() {

@@ -91,3 +91,5 @@ sw.*
 
 /resources/
 /android/app/release/
+# Locally built APKs (scripts/build-apk.sh)
+/apk/

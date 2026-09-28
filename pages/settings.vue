@@ -159,6 +159,50 @@
       </div>
     </div>
 
+    <!-- Remote control (MQTT) settings -->
+    <template v-if="!isiOS">
+      <p class="uppercase text-xs font-semibold text-fg-muted mb-2 mt-10">{{ $strings.HeaderRemoteControlSettings }}</p>
+      <div class="flex items-center py-3">
+        <div class="w-10 flex justify-center" @click="toggleMqttEnabled">
+          <ui-toggle-switch v-model="settings.mqttEnabled" @input="saveSettings" />
+        </div>
+        <p class="pl-4">{{ $strings.LabelMqttEnabled }}</p>
+        <span class="material-symbols text-xl ml-2" @click.stop="showInfo('mqttEnabled')">info</span>
+      </div>
+      <template v-if="settings.mqttEnabled">
+        <div class="py-2 flex items-start">
+          <p class="pr-4 w-36 shrink-0">{{ $strings.LabelStatus }}</p>
+          <div class="min-w-0">
+            <p class="flex items-center">
+              <span class="inline-block w-2.5 h-2.5 rounded-full mr-2 shrink-0" :class="mqttStatusDotClass" />
+              {{ mqttStatusText }}
+            </p>
+            <p v-if="mqttStatus.message && mqttStatus.status !== 'connecting'" class="text-xs text-fg-muted break-words">{{ mqttStatus.message }}</p>
+          </div>
+        </div>
+        <div class="py-3 flex items-center">
+          <p class="pr-4 w-36">{{ $strings.LabelHost }}</p>
+          <ui-text-input v-model="settings.mqttHost" :autofocus="false" placeholder="192.168.1.10" style="max-width: 200px" @input="mqttSettingUpdated" />
+        </div>
+        <div class="py-3 flex items-center">
+          <p class="pr-4 w-36">{{ $strings.LabelPort }}</p>
+          <ui-text-input type="number" v-model="settings.mqttPort" :autofocus="false" placeholder="1883" style="width: 145px; max-width: 145px" @input="mqttSettingUpdated" />
+        </div>
+        <div class="py-3 flex items-center">
+          <p class="pr-4 w-36">{{ $strings.LabelUsername }}</p>
+          <ui-text-input v-model="settings.mqttUsername" :autofocus="false" style="max-width: 200px" @input="mqttSettingUpdated" />
+        </div>
+        <div class="py-3 flex items-center">
+          <p class="pr-4 w-36">{{ $strings.LabelPassword }}</p>
+          <ui-text-input type="password" v-model="settings.mqttPassword" :autofocus="false" style="max-width: 200px" @input="mqttSettingUpdated" />
+        </div>
+        <div class="py-3 flex items-center">
+          <p class="pr-4 w-36">{{ $strings.LabelMqttBaseTopic }}</p>
+          <ui-text-input v-model="settings.mqttBaseTopic" :autofocus="false" placeholder="audiobookshelf/kids_tablet" style="max-width: 200px" @input="mqttSettingUpdated" />
+        </div>
+      </template>
+    </template>
+
     <!-- Android Auto settings -->
     <template v-if="!isiOS">
       <p class="uppercase text-xs font-semibold text-fg-muted mb-2 mt-10">{{ $strings.HeaderAndroidAutoSettings }}</p>
@@ -223,8 +267,17 @@ export default {
         downloadUsingCellular: 'ALWAYS',
         streamingUsingCellular: 'ALWAYS',
         androidAutoBrowseLimitForGrouping: 100,
-        androidAutoBrowseSeriesSequenceOrder: 'ASC'
+        androidAutoBrowseSeriesSequenceOrder: 'ASC',
+        mqttEnabled: false,
+        mqttHost: '',
+        mqttPort: 1883,
+        mqttUsername: '',
+        mqttPassword: '',
+        mqttBaseTopic: ''
       },
+      mqttSaveTimeout: null,
+      mqttStatus: { status: 'disabled', message: null },
+      mqttStatusInterval: null,
       theme: 'dark',
       lockCurrentOrientation: false,
       settingInfo: {
@@ -259,6 +312,10 @@ export default {
         androidAutoBrowseLimitForGrouping: {
           name: this.$strings.LabelAndroidAutoBrowseLimitForGrouping,
           message: this.$strings.LabelAndroidAutoBrowseLimitForGroupingHelp
+        },
+        mqttEnabled: {
+          name: this.$strings.LabelMqttEnabled,
+          message: this.$strings.LabelMqttEnabledHelp
         }
       },
       hapticFeedbackItems: [
@@ -353,6 +410,26 @@ export default {
     },
     isiOS() {
       return this.$platform === 'ios'
+    },
+    mqttStatusText() {
+      switch (this.mqttStatus.status) {
+        case 'connected':
+          return this.$strings.LabelMqttStatusConnected
+        case 'connecting':
+          return this.$strings.LabelMqttStatusConnecting
+        case 'disconnected':
+          return this.$strings.LabelMqttStatusDisconnected
+        case 'error':
+          return this.$strings.LabelMqttStatusError
+        default:
+          // Enabled but not active yet, e.g. no host entered or the change isn't saved yet
+          return this.settings.mqttHost ? this.$strings.LabelMqttStatusConnecting : this.$strings.LabelMqttStatusNoHost
+      }
+    },
+    mqttStatusDotClass() {
+      if (this.mqttStatus.status === 'connected') return 'bg-success'
+      if (this.mqttStatus.status === 'error') return 'bg-error'
+      return 'bg-warning'
     },
     jumpForwardSecondsOptions() {
       return this.$store.state.globals.jumpForwardSecondsOptions || []
@@ -553,6 +630,27 @@ export default {
       this.$store.commit('globals/setHapticFeedback', val)
       this.saveSettings()
     },
+    toggleMqttEnabled() {
+      this.settings.mqttEnabled = !this.settings.mqttEnabled
+      this.saveSettings()
+    },
+    mqttSettingUpdated() {
+      // Debounced so the connection isn't re-established on every keystroke
+      clearTimeout(this.mqttSaveTimeout)
+      this.mqttSaveTimeout = setTimeout(() => {
+        this.mqttSaveTimeout = null
+        this.settings.mqttPort = Number(this.settings.mqttPort) || 1883
+        this.saveSettings()
+      }, 1500)
+    },
+    async refreshMqttStatus() {
+      if (this.isiOS || !this.settings.mqttEnabled) return
+      try {
+        this.mqttStatus = (await this.$db.getMqttStatus()) || { status: 'disabled' }
+      } catch (error) {
+        console.error('Failed to get MQTT status', error)
+      }
+    },
     showInfo(setting) {
       if (this.settingInfo[setting]) {
         Dialog.alert({
@@ -671,6 +769,13 @@ export default {
 
       this.settings.androidAutoBrowseLimitForGrouping = deviceSettings.androidAutoBrowseLimitForGrouping
       this.settings.androidAutoBrowseSeriesSequenceOrder = deviceSettings.androidAutoBrowseSeriesSequenceOrder || 'ASC'
+
+      this.settings.mqttEnabled = !!deviceSettings.mqttEnabled
+      this.settings.mqttHost = deviceSettings.mqttHost || ''
+      this.settings.mqttPort = deviceSettings.mqttPort || 1883
+      this.settings.mqttUsername = deviceSettings.mqttUsername || ''
+      this.settings.mqttPassword = deviceSettings.mqttPassword || ''
+      this.settings.mqttBaseTopic = deviceSettings.mqttBaseTopic || ''
     },
     async init() {
       this.loading = true
@@ -683,6 +788,17 @@ export default {
   },
   mounted() {
     this.init()
+    this.refreshMqttStatus()
+    this.mqttStatusInterval = setInterval(this.refreshMqttStatus, 2000)
+  },
+  beforeDestroy() {
+    clearInterval(this.mqttStatusInterval)
+    // Flush a pending MQTT settings change when leaving the page
+    if (this.mqttSaveTimeout) {
+      clearTimeout(this.mqttSaveTimeout)
+      this.settings.mqttPort = Number(this.settings.mqttPort) || 1883
+      this.saveSettings()
+    }
   }
 }
 </script>

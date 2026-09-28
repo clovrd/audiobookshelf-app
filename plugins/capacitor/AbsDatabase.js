@@ -266,6 +266,10 @@ class AbsDatabaseWeb extends WebPlugin {
     return deviceData
   }
 
+  async getMqttStatus() {
+    return { status: 'disabled' }
+  }
+
   async getMediaItemHistory({ mediaId }) {
     console.log('Get media item history', mediaId)
     return {

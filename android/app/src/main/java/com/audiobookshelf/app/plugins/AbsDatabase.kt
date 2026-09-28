@@ -568,10 +568,25 @@ class AbsDatabase : Plugin() {
       // Updates playback actions for media notification (handles media control seek locking setting)
       if (mainActivity.isPlayerNotificationServiceInitialized()) {
         mainActivity.foregroundService.setMediaSessionConnectorPlaybackActions()
+        mainActivity.foregroundService.mqttRemote.reconfigure()
       }
 
       call.resolve(JSObject(jacksonMapper.writeValueAsString(DeviceManager.deviceData)))
     }
+  }
+
+  @PluginMethod
+  fun getMqttStatus(call:PluginCall) {
+    val ret = JSObject()
+    if (mainActivity.isPlayerNotificationServiceInitialized()) {
+      val mqttRemote = mainActivity.foregroundService.mqttRemote
+      ret.put("status", mqttRemote.status)
+      ret.put("message", mqttRemote.statusMessage)
+      ret.put("baseTopic", mqttRemote.baseTopic)
+    } else {
+      ret.put("status", "disabled")
+    }
+    call.resolve(ret)
   }
 
   @PluginMethod

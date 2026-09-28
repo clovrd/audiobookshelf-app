@@ -234,6 +234,15 @@ constructor(private val playerNotificationService: PlayerNotificationService) {
     return sleepTimerEndTime
   }
 
+  /**
+   * Gets the remaining sleep timer time.
+   * @return Int - the remaining time in seconds, 0 if no sleep timer is running.
+   */
+  fun getSleepTimerRemainingSeconds(): Int {
+    if (!sleepTimerRunning) return 0
+    return getSleepTimerTimeRemainingSeconds(getPlaybackSpeed())
+  }
+
   /** Cancels the sleep timer. */
   fun cancelSleepTimer() {
     Log.d(tag, "Canceling Sleep Timer")

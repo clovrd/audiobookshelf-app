@@ -172,7 +172,14 @@ data class DeviceSettings(
         var downloadUsingCellular: DownloadUsingCellularSetting,
         var streamingUsingCellular: StreamingUsingCellularSetting,
         var androidAutoBrowseLimitForGrouping: Int,
-        var androidAutoBrowseSeriesSequenceOrder: AndroidAutoBrowseSeriesSequenceOrderSetting
+        var androidAutoBrowseSeriesSequenceOrder: AndroidAutoBrowseSeriesSequenceOrderSetting,
+        // MQTT remote control. Nullable because settings stored by older versions don't have them
+        var mqttEnabled: Boolean? = false,
+        var mqttHost: String? = "",
+        var mqttPort: Int? = 1883,
+        var mqttUsername: String? = "",
+        var mqttPassword: String? = "",
+        var mqttBaseTopic: String? = ""
 ) {
   companion object {
     // Static method to get default device settings

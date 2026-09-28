@@ -126,6 +126,9 @@ dependencies {
   // OK HTTP
   implementation 'com.squareup.okhttp3:okhttp:4.9.2'
 
+  // MQTT remote control
+  implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
+
   // Jackson for JSON
   implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.12.2'
 }
