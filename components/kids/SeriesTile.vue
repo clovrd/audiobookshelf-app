@@ -2,7 +2,9 @@
   <div class="shrink-0" :style="width ? { width: width + 'px' } : null" @click="$emit('click', series)">
     <div class="relative w-full rounded-2xl overflow-hidden shadow-lg" :class="showLogo ? 'bg-white' : 'bg-bg-hover'" style="padding-top: 100%">
       <img v-if="imageSrc" :src="imageSrc" class="absolute inset-0 w-full h-full" :class="showLogo ? 'object-contain p-2' : 'object-cover'" loading="lazy" @error="logoFailed = true" />
-      <span v-if="favorite" class="material-symbols fill absolute top-1.5 right-1.5 w-8 h-8 flex items-center justify-center rounded-full bg-white text-xl text-error shadow">favorite</span>
+      <div v-if="favorite" class="absolute top-1.5 right-1.5 w-8 h-8 flex items-center justify-center rounded-full bg-white shadow">
+        <span class="material-symbols fill text-xl leading-none text-error">favorite</span>
+      </div>
     </div>
     <p v-if="showName" class="mt-1.5 text-sm text-center truncate">{{ series.name }}</p>
   </div>
