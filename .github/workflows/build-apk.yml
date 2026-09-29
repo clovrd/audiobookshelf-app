@@ -51,7 +51,10 @@ jobs:
           else
             mkdir -p ~/.android
             echo "$DEBUG_KEYSTORE_BASE64" | base64 -d > ~/.android/debug.keystore
+            # Should match the key the installed app was signed with (KIDS.md)
+            keytool -list -v -keystore ~/.android/debug.keystore -storepass android | grep -m1 'SHA256:'
           fi
+          env | grep -E '^ANDROID_(USER_HOME|SDK_HOME|PREFS_ROOT|EMULATOR_HOME)=' || true
 
       - name: build Android app
         run: ./android/gradlew assembleDebug -p android --no-daemon
