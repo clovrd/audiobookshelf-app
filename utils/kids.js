@@ -24,6 +24,55 @@ export function parseSeriesLogo(description) {
   return parseDescriptionField(description, 'logo')?.split(/\s/)[0] || null
 }
 
+// Set at build time, e.g. "https://files.example.com/abs-logos" (nuxt.config.js)
+const LOGO_BASE_URL = (process.env.KIDS_LOGO_BASE_URL || '').trim().replace(/\/+$/, '')
+
+const TRANSLITERATE = { ä: 'ae', ö: 'oe', ü: 'ue', ß: 'ss', æ: 'ae', ø: 'oe', å: 'aa' }
+
+/**
+ * File name for a series logo: lowercase, German umlauts spelled out, everything else that isn't a letter or
+ * digit becomes a single dash. "Bibi & Tina" -> "bibi-tina", "Die drei ???" -> "die-drei",
+ * "Löwenzahn" -> "loewenzahn", "Pettersson und Findus" -> "pettersson-und-findus"
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+export function seriesSlug(name) {
+  return (name || '')
+    .toLowerCase()
+    .replace(/[äöüßæøå]/g, (c) => TRANSLITERATE[c])
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+/**
+ * Logo of a series: "logo:" in the description wins, otherwise <KIDS_LOGO_BASE_URL>/<slug>.png when a base URL
+ * was set at build time. Callers fall back to the first cover when the image doesn't load.
+ *
+ * @param {Object} series
+ * @param {string} [description]
+ * @returns {string|null}
+ */
+export function getSeriesLogoUrl(series, description) {
+  const fromDescription = parseSeriesLogo(description)
+  if (fromDescription) return fromDescription
+  const slug = seriesSlug(series?.name)
+  return LOGO_BASE_URL && slug ? `${LOGO_BASE_URL}/${slug}.png` : null
+}
+
+// Logo URLs that failed to load (usually 404: no logo for that series), skipped for the rest of the app session
+const missingLogoUrls = new Set()
+
+export function isLogoMissing(url) {
+  return missingLogoUrls.has(url)
+}
+
+export function markLogoMissing(url) {
+  missingLogoUrls.add(url)
+}
+
 /**
  * Manual syllables for the series name when the automatic ones are wrong, e.g. "silben: Schleich - Horse Club"
  *

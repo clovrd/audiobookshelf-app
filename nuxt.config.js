@@ -7,7 +7,9 @@ export default {
   env: {
     PROD: '1',
     ANDROID_APP_URL: 'https://play.google.com/store/apps/details?id=com.audiobookshelf.app',
-    IOS_APP_URL: ''
+    IOS_APP_URL: '',
+    // Series logos for the kids UI are loaded from <base>/<series-slug>.png (utils/kids.js, KIDS.md)
+    KIDS_LOGO_BASE_URL: process.env.KIDS_LOGO_BASE_URL || ''
   },
 
   publicRuntimeConfig: {

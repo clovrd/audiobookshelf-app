@@ -4,6 +4,7 @@
 #
 # Requires JDK 17 + 21, the Android SDK (platform 36) and Node. Overridable via env:
 #   JAVA_HOME (default: JDK 21), ANDROID_HOME (default: /opt/android-sdk)
+#   KIDS_LOGO_BASE_URL (series logos in the kids UI, see KIDS.md; default: none)
 # Pass --skip-web to reuse the last Nuxt build (dist/) when only native code changed.
 set -euo pipefail
 

@@ -10,9 +10,36 @@ Episode titles on the series page and in the player drop the series name and epi
 (`Bibi Blocksberg - Folge 12 - Hexen gibt es doch` → `Hexen gibt es doch`), since both are shown anyway. When nothing
 else is left the subtitle is used.
 
+## Series logos
+
+Tiles show a square logo from `<KIDS_LOGO_BASE_URL>/<slug>.png`, falling back to the cover of the first book (in
+series order) that has one when there is no logo. The tablet loads it with a plain HTTP GET, so any web server
+works. Square PNGs around 512×512 look best, they are shown on a cream background with some padding.
+
+The **slug** is the series name in lowercase, German umlauts spelled out (`ä` → `ae`, `ß` → `ss`), accents removed,
+and everything that isn't a letter or digit replaced by a single `-`:
+
+| Series name | File |
+|---|---|
+| Bibi Blocksberg | `bibi-blocksberg.png` |
+| Bibi & Tina | `bibi-tina.png` |
+| Die drei ??? Kids | `die-drei-kids.png` |
+| Benjamin Blümchen | `benjamin-bluemchen.png` |
+| Schleich - Horse Club | `schleich-horse-club.png` |
+
+`KIDS_LOGO_BASE_URL` is set when the app is built, e.g. `https://files.example.com/abs-logos`:
+
+- GitHub Actions: repository variable `KIDS_LOGO_BASE_URL` (Settings → Secrets and variables → Actions →
+  Variables), used by `build-apk.yml` and `deploy-apk.yml`
+- Local builds: `KIDS_LOGO_BASE_URL=https://files.example.com/abs-logos ./scripts/build-apk.sh`
+
+Without it, the tiles always show the first cover. A logo that fails to load (404) isn't requested again until the
+app restarts, so a newly uploaded logo shows up after restarting the app.
+
 ## Series settings in the ABS description
 
-ABS has no fields for these, so they are lines in the series description (ABS web UI → series → edit):
+ABS has no field for these and its web UI can't edit series descriptions, so they can only be set through the API
+(`PATCH /api/series/<id>` with `{"description": "…"}`). One `key: value` per line:
 
 ```
 logo: http://server.local/logos/bibi-und-tina.png
@@ -21,7 +48,7 @@ silben: Schleich - Horse Club
 
 | Line | Effect |
 |---|---|
-| `logo: <url>` | Square logo instead of the cover of the first book. Loaded with a plain HTTP GET by the tablet, so any web server in the network works. Transparent PNGs around 512×512 look best. |
+| `logo: <url>` | Logo for this series instead of `<KIDS_LOGO_BASE_URL>/<slug>.png`. |
 | `silben: <text>` | Manual syllables for the colored series name when the automatic ones are wrong. Mark syllables with `\|` (`Ra\|di\|o Rät\|sel`), words without `\|` stay one syllable. |
 
 ## Colored syllables (Silbenfarben)

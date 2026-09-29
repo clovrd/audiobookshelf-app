@@ -33,6 +33,9 @@ jobs:
 
       - name: build Nuxt project
         run: npm run generate
+        env:
+          # Repository variable (Settings -> Secrets and variables -> Actions -> Variables), see KIDS.md
+          KIDS_LOGO_BASE_URL: ${{ vars.KIDS_LOGO_BASE_URL }}
 
       - name: copy to Android project
         run: npx cap sync

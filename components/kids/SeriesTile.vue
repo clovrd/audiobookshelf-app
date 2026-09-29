@@ -1,7 +1,7 @@
 <template>
   <div class="k-series-tile k-press" :style="width ? { width: width + 'px' } : null" @click="$emit('click', series)">
     <div class="k-cover" :class="{ 'k-series-tile__logo': showLogo }">
-      <img v-if="imageSrc" :src="imageSrc" loading="lazy" @error="logoFailed = true" />
+      <img v-if="imageSrc" :key="imageSrc" :src="imageSrc" loading="lazy" @error="onImageError" />
       <div v-if="isPlayingSeries" class="k-series-tile__badge"><kids-equalizer :playing="kidsIsPlaying" /></div>
     </div>
     <p v-if="showName" class="k-series-tile__name learner" :style="{ fontSize: nameSize + 'px' }"><kids-syllable-text :text="series.name" :override="syllablesOverride" /></p>
@@ -10,7 +10,7 @@
 
 <script>
 import kidsPlayback from '@/mixins/kidsPlayback'
-import { loadSeriesDescription, parseSeriesLogo, parseSeriesSyllables, sortSeriesBooks } from '@/utils/kids'
+import { getSeriesLogoUrl, isLogoMissing, loadSeriesDescription, markLogoMissing, parseSeriesSyllables, sortSeriesBooks } from '@/utils/kids'
 
 export default {
   mixins: [kidsPlayback],
@@ -32,14 +32,17 @@ export default {
   },
   data() {
     return {
-      logoUrl: null,
+      description: null,
       logoFailed: false,
       syllablesOverride: null
     }
   },
   computed: {
+    logoUrl() {
+      return getSeriesLogoUrl(this.series, this.description)
+    },
     showLogo() {
-      return !!this.logoUrl && !this.logoFailed
+      return !!this.logoUrl && !this.logoFailed && !isLogoMissing(this.logoUrl)
     },
     firstBook() {
       // First book in series order that has a cover
@@ -62,10 +65,20 @@ export default {
     }
   },
   methods: {
+    onImageError() {
+      // The logo doesn't exist (or can't be loaded): show the first cover instead
+      if (!this.showLogo) return
+      markLogoMissing(this.logoUrl)
+      this.logoFailed = true
+    },
     async loadDescription() {
       this.logoFailed = false
+      this.description = null
+      const seriesId = this.series.id
       const description = await loadSeriesDescription(this.$nativeHttp, this.series)
-      this.logoUrl = parseSeriesLogo(description)
+      if (seriesId !== this.series.id) return
+      this.description = description
+      this.logoFailed = false
       this.syllablesOverride = parseSeriesSyllables(description)
     }
   },

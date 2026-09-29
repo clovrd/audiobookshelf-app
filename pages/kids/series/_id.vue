@@ -105,10 +105,15 @@ export default {
   overflow-y: auto;
   padding: 0 40px 160px;
 }
+/* Stays on top while scrolling through long series */
 .k-series__top {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   height: 104px;
   display: flex;
   align-items: center;
+  background: var(--color-page);
 }
 .k-series__back {
   width: 72px;
@@ -123,7 +128,7 @@ export default {
 .k-series__side {
   flex: 0 1 340px;
   position: sticky;
-  top: 0;
+  top: 104px;
 }
 .k-series__cover {
   width: 100%;
