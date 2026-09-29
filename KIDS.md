@@ -14,7 +14,8 @@ else is left the subtitle is used.
 
 Tiles show a square logo from `<KIDS_LOGO_BASE_URL>/<slug>.png`, falling back to the cover of the first book (in
 series order) that has one when there is no logo. The tablet loads it with a plain HTTP GET, so any web server
-works. Square PNGs around 512×512 look best, they are shown on a cream background with some padding.
+works. Square PNGs around 512×512 look best: they fill the whole tile (other shapes are cropped to a square) and
+transparent parts show a cream background.
 
 The **slug** is the series name in lowercase, German umlauts spelled out (`ä` → `ae`, `ß` → `ss`), accents removed,
 and everything that isn't a letter or digit replaced by a single `-`:

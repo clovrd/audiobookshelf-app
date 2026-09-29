@@ -196,14 +196,20 @@ export default {
   font-weight: 700;
   letter-spacing: -0.02em;
 }
+/* Only scrolls sideways: with overflow-y auto (implied by overflow-x) the few pixels the cards stick out made the
+   row vertically scrollable, and a vertical swipe starting on it didn't scroll the page. The bottom padding keeps
+   those pixels (e.g. letter descenders) visible. */
 .k-section__row {
   display: flex;
   gap: 28px;
   padding-top: 22px;
+  padding-bottom: 8px;
   margin: 0 -40px;
   padding-left: 40px;
   padding-right: 40px;
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
 }
 .k-home__grid {
   display: grid;

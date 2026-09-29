@@ -95,9 +95,9 @@ export default {
 .k-series-tile__logo {
   background: var(--color-cream-100);
 }
+/* Logos fill the whole tile, the cream background only shows through transparent parts */
 .k-series-tile__logo > img {
-  object-fit: contain;
-  padding: 8%;
+  object-fit: cover;
 }
 .k-series-tile__badge {
   position: absolute;
