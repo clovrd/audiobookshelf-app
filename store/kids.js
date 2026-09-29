@@ -12,7 +12,9 @@ export const state = () => ({
   volumeMaxStep: 15,
   // 0.05-1, applied natively to the app window
   brightness: 1,
-  favoriteSeriesIds: []
+  favoriteSeriesIds: [],
+  // A parent left the kids mode, "/" goes to the normal UI until the app restarts
+  parentExited: false
 })
 
 export const mutations = {

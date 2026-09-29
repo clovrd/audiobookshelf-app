@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core'
 import { AbsAudioPlayer } from '@/plugins/capacitor'
-import { getItemSeries } from '@/utils/kids'
+import { cleanEpisodeTitle, getItemSeries } from '@/utils/kids'
 
 export default {
   computed: {
@@ -27,7 +27,9 @@ export default {
       return this.kidsSeries?.name || this.kidsSession?.displayTitle || ''
     },
     kidsEpisodeTitle() {
-      return this.kidsSession?.displayTitle || ''
+      const title = this.kidsSession?.displayTitle || ''
+      if (!this.kidsSeries) return title
+      return cleanEpisodeTitle(title, this.kidsSeries.name, this.kidsSeries.sequence)
     },
     kidsDuration() {
       return this.kidsSession?.duration || 0

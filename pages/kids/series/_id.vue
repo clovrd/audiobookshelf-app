@@ -23,7 +23,7 @@
       <div class="k-series__episodes">
         <div v-if="loading" class="k-series__loading"><ui-loading-indicator /></div>
         <div v-else class="k-series__grid">
-          <kids-episode-tile v-for="item in books" :key="item.id" :library-item="item" :sequence="sequenceOf(item)" />
+          <kids-episode-tile v-for="item in books" :key="item.id" :library-item="item" :sequence="sequenceOf(item)" :series-name="series ? series.name : null" />
         </div>
       </div>
     </div>

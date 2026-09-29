@@ -128,6 +128,55 @@ export function getItemSeries(libraryItem, seriesId = null) {
   return null
 }
 
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const SEPARATORS = '\\s\\-–—:|,.·/'
+
+/**
+ * Removes the series name and episode number titles often start with, e.g.
+ * "Bibi Blocksberg - Folge 12 - Hexen gibt es doch" or "012: Hexen gibt es doch (Bibi Blocksberg)"
+ * both become "Hexen gibt es doch"
+ *
+ * @param {string} title
+ * @param {string} [seriesName]
+ * @param {number|string} [sequence]
+ * @returns {string} empty when nothing but series name and number is left
+ */
+function stripSeriesFromTitle(title, seriesName, sequence) {
+  let text = (title || '').trim()
+  if (seriesName) {
+    const name = escapeRegExp(seriesName.trim()).replace(/\s+/g, '\\s+')
+    // Only when a separator or number follows, "Die drei ??? und der Karpatenhund" stays
+    text = text.replace(new RegExp(`^${name}(?:\\s*(?=[#\\d])|\\s*[\\-–—:|,.·/][${SEPARATORS}]*|\\s*$)`, 'i'), '')
+    text = text.replace(new RegExp(`[\\s\\-–—:|,]*[(\\[]\\s*${name}[^)\\]]*[)\\]]\\s*$`, 'i'), '')
+  }
+  // "Folge 12 -", "Episode 3:", "Teil 1.", "#12", "012 -"
+  text = text.replace(new RegExp(`^(?:(?:folge|episode|teil|band|fall|nr\\.?|no\\.?)\\s*)?#?\\s*\\d+[a-z]?(?:[${SEPARATORS}]+|$)`, 'i'), (match) => {
+    // A plain number only counts when it is the sequence ("1001 Nacht" stays)
+    if (/^\s*#?\s*\d/.test(match) && sequence != null && parseFloat(match.replace('#', '')) !== parseFloat(sequence)) return match
+    return ''
+  })
+  return text.replace(new RegExp(`^[${SEPARATORS}]+|[\\s\\-–—:|,]+$`, 'g'), '').trim()
+}
+
+/**
+ * Episode title for the kids UI, without the series name and number that are shown anyway.
+ * Falls back to the subtitle when the title is only the series name (album tag = series).
+ *
+ * @param {Object} libraryItem
+ * @param {string} [seriesName]
+ * @param {number|string} [sequence]
+ * @returns {string}
+ */
+export function getEpisodeTitle(libraryItem, seriesName, sequence) {
+  const metadata = libraryItem?.media?.metadata || {}
+  return stripSeriesFromTitle(metadata.title, seriesName, sequence) || stripSeriesFromTitle(metadata.subtitle, seriesName, sequence)
+}
+
+/** Same for a title string, e.g. the playback session's displayTitle */
+export function cleanEpisodeTitle(title, seriesName, sequence) {
+  return stripSeriesFromTitle(title, seriesName, sequence)
+}
+
 /** 1234 -> "20:34", 4000 -> "1:06:40" */
 export function formatClock(seconds) {
   const total = Math.max(0, Math.floor(seconds || 0))

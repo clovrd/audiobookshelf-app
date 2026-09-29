@@ -1,9 +1,6 @@
 // Volume and brightness for the kids mode, shared by the player and the "Licht und Ton" sheet
 import { AbsDeviceControls } from '@/plugins/capacitor'
 
-// "1" when the app should start in the kids mode
-export const KIDS_MODE_KEY = 'kidsMode'
-
 export const MIN_BRIGHTNESS = 0.05
 const BRIGHTNESS_KEY = 'kidsBrightness'
 

@@ -6,7 +6,7 @@
     </div>
     <span v-if="sequence !== null" class="k-episode__number num">{{ sequence }}</span>
     <div class="k-episode__text">
-      <p class="k-episode__title">{{ title }}</p>
+      <p v-if="title" class="k-episode__title">{{ title }}</p>
       <div v-if="isInProgress" class="k-progress k-episode__progress"><div :style="{ width: progressPercent + '%' }" /></div>
       <p class="k-episode__time num">{{ timeText }}</p>
     </div>
@@ -16,7 +16,7 @@
 
 <script>
 import kidsPlayback from '@/mixins/kidsPlayback'
-import { toMinutes } from '@/utils/kids'
+import { getEpisodeTitle, toMinutes } from '@/utils/kids'
 
 export default {
   mixins: [kidsPlayback],
@@ -28,11 +28,17 @@ export default {
     sequence: {
       type: Number,
       default: null
+    },
+    seriesName: {
+      type: String,
+      default: null
     }
   },
   computed: {
     title() {
-      return this.libraryItem.media?.metadata?.title || ''
+      // Titles often repeat the series name and number, which would be all that fits
+      const title = getEpisodeTitle(this.libraryItem, this.seriesName, this.sequence)
+      return title || (this.sequence === null ? this.libraryItem.media?.metadata?.title || '' : '')
     },
     coverSrc() {
       return this.$store.getters['globals/getLibraryItemCoverSrc'](this.libraryItem, '/book_placeholder.jpg')
@@ -119,10 +125,13 @@ export default {
 }
 .k-episode__title {
   font-size: 17px;
+  line-height: 1.3;
   color: var(--color-ink-body);
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 .k-episode__progress {
   height: 8px;

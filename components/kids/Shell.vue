@@ -25,7 +25,7 @@
 
 <script>
 import { AbsAudioPlayer, AbsDeviceControls } from '@/plugins/capacitor'
-import { KIDS_MODE_KEY, isOwnVolumeChange, resetBrightness, restoreBrightness } from '@/utils/kidsDevice'
+import { isOwnVolumeChange, resetBrightness, restoreBrightness } from '@/utils/kidsDevice'
 
 /**
  * Always mounted on kids pages (layouts/default.vue): mini player, player, sheets, volume HUD
@@ -91,13 +91,12 @@ export default {
       if (this.playerOpen) return this.$store.commit('kids/set', { playerOpen: false })
       if (this.$route.path !== '/kids') this.$router.push('/kids')
     },
-    async exitKidsMode() {
-      await this.$localStore.setPreferenceByKey(KIDS_MODE_KEY, '0')
-      this.$store.commit('kids/set', { sheet: null, playerOpen: false })
+    exitKidsMode() {
+      this.$store.commit('kids/set', { sheet: null, playerOpen: false, parentExited: true })
       this.$router.replace('/bookshelf')
     },
     async init() {
-      await this.$localStore.setPreferenceByKey(KIDS_MODE_KEY, '1')
+      this.$store.commit('kids/set', { parentExited: false })
       restoreBrightness(this.$store, this.$localStore)
 
       const volume = await AbsDeviceControls.getVolume().catch(() => null)

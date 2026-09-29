@@ -57,13 +57,18 @@ export default {
     currentLibraryId() {
       return this.$store.state.libraries.currentLibraryId
     },
+    loadKey() {
+      return `${this.currentLibraryId}|${this.$store.state.user.serverConnectionConfig?.id || ''}`
+    },
     favoriteSeries() {
       // In the order they were added
       return this.$store.state.kids.favoriteSeriesIds.map((id) => this.series.find((s) => s.id === id)).filter(Boolean)
     }
   },
   watch: {
-    currentLibraryId() {
+    // On app start this page mounts before the server connection is made, and the library id is set before the
+    // connection config, so both are watched
+    loadKey() {
       this.load()
     }
   },

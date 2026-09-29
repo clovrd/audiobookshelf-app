@@ -3,6 +3,13 @@
 Side menu → **Kids**: series as square tiles, favorites (stored on the device), continue listening and a series page
 with the books in series order.
 
+The app starts in the kids mode once a server is set up. Holding the clock for 3 seconds opens the parent sheet, which
+leaves to the normal UI until the app is restarted (or the side menu → Kids is opened again).
+
+Episode titles on the series page and in the player drop the series name and episode number they often start with
+(`Bibi Blocksberg - Folge 12 - Hexen gibt es doch` → `Hexen gibt es doch`), since both are shown anyway. When nothing
+else is left the subtitle is used.
+
 ## Series settings in the ABS description
 
 ABS has no fields for these, so they are lines in the series description (ABS web UI → series → edit):
