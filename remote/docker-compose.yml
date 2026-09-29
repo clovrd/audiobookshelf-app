@@ -1,0 +1,19 @@
+services:
+  abs-remote:
+    build: .
+    image: abs-remote
+    container_name: abs-remote
+    restart: unless-stopped
+
+    # If your Caddy runs on the host (systemd), publish a port and point
+    # reverse_proxy at localhost:8081:
+    ports:
+      - "8081:80"
+
+    # If your Caddy runs in Docker, delete the "ports" block above, join the
+    # same network, and use `reverse_proxy abs-remote:80` instead:
+    # networks:
+    #   - caddy
+# networks:
+#   caddy:
+#     external: true

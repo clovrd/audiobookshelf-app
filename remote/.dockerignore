@@ -1,0 +1,8 @@
+serve.py
+make_icons.py
+README.md
+Dockerfile
+docker-compose.yml
+.dockerignore
+.git
+.gitignore

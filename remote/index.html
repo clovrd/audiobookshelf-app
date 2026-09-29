@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ABS Remote</title>
+
+  <meta name="theme-color" content="#0f1a16" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ABS Remote" />
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header id="top">
+    <h1>ABS Remote</h1>
+    <button id="conn" class="conn" data-state="idle" aria-label="Connection settings">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="conn-label">Not set up</span>
+    </button>
+    <button id="settings-btn" class="icon-btn" aria-label="Settings">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+      </svg>
+    </button>
+  </header>
+
+  <main id="devices" aria-live="polite"></main>
+
+  <p id="empty" class="empty" hidden></p>
+
+  <button id="update" class="update-pill" hidden>
+    <span id="update-label">Update available · tap to reload</span>
+  </button>
+
+  <!-- One device, cloned per base topic -->
+  <template id="device-tpl">
+    <article class="device">
+      <div class="device__head">
+        <h2 class="device__name"></h2>
+        <span class="badge"></span>
+      </div>
+
+      <div class="device__idle">Nothing playing</div>
+
+      <div class="device__now">
+        <p class="device__title"></p>
+        <p class="device__author"></p>
+        <p class="device__chapter"></p>
+
+        <div class="seek" role="slider" aria-label="Position" tabindex="0">
+          <div class="seek__track"><div class="seek__fill"></div></div>
+          <div class="seek__thumb"></div>
+        </div>
+        <div class="times num">
+          <span class="times__pos"></span>
+          <span class="times__rem"></span>
+        </div>
+
+        <div class="transport">
+          <button class="round round--md" data-cmd="jump_backward" aria-label="Jump back">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
+          </button>
+          <button class="round round--lg round--primary" data-cmd="toggle" aria-label="Play or pause">
+            <svg class="i-play" viewBox="0 0 24 24" width="38" height="38" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.52.85l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5Z" /></svg>
+            <svg class="i-pause" viewBox="0 0 24 24" width="38" height="38" fill="currentColor" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.5" /><rect x="14" y="4" width="5" height="16" rx="1.5" /></svg>
+          </button>
+          <button class="round round--md" data-cmd="jump_forward" aria-label="Jump forward">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="row volume">
+        <button class="round round--sm" data-cmd="mute" aria-label="Mute or unmute">
+          <svg class="i-vol" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /></svg>
+          <svg class="i-muted" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z" /><path d="m22 9-6 6" /><path d="m16 9 6 6" /></svg>
+        </button>
+        <input class="volume__slider" type="range" min="0" max="100" step="1" aria-label="Volume" />
+        <span class="volume__value num"></span>
+      </div>
+
+      <div class="row sleep">
+        <span class="sleep__label">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>
+          <span class="sleep__text">Sleep</span>
+        </span>
+        <div class="chips">
+          <button class="chip" data-sleep="0">Off</button>
+          <button class="chip" data-sleep="15">15</button>
+          <button class="chip" data-sleep="30">30</button>
+          <button class="chip" data-sleep="45">45</button>
+          <button class="chip" data-sleep="60">60</button>
+        </div>
+      </div>
+
+      <div class="device__foot">
+        <span class="device__updated"></span>
+        <button class="link" data-cmd="stop">Stop playback</button>
+      </div>
+    </article>
+  </template>
+
+  <dialog id="settings">
+    <form method="dialog" id="settings-form">
+      <h2>Broker</h2>
+      <label>WebSocket URL
+        <input name="url" type="url" required placeholder="wss://remote.example.com/mqtt" autocomplete="off" />
+      </label>
+      <p class="hint">The broker's WebSocket listener. On an https:// page this must be wss://.</p>
+      <label>Username
+        <input name="username" autocomplete="username" />
+      </label>
+      <label>Password
+        <input name="password" type="password" autocomplete="current-password" />
+      </label>
+      <label>Devices topic
+        <input name="topic" required placeholder="audiobookshelf/+" autocomplete="off" />
+      </label>
+      <p class="hint">Base topic of the devices, <code>+</code> matches any one level. Default: <code>audiobookshelf/+</code></p>
+      <div class="actions">
+        <button type="button" class="btn btn--ghost" id="settings-cancel">Cancel</button>
+        <button type="submit" class="btn btn--primary" value="save">Save &amp; connect</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="vendor/mqtt.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -63,6 +63,11 @@ Published when something changes (play/pause, item, chapter, volume, speed, slee
 
 Only `state`, `playing`, `volume`, `mediaPlayer`, `sleepTimerRemaining` and `timestamp` are present when idle.
 
+## Web remote
+
+[`remote/`](remote/README.md) is a small PWA for the parents' phones that shows and controls all devices
+(needs the broker's WebSocket listener).
+
 ## Try it
 
 ```sh
