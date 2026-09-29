@@ -79,8 +79,10 @@ Android only installs an update over an app signed with the same key, otherwise 
 
 - Local builds (`scripts/build-apk.sh`) use the build machine's `~/.android/debug.keystore`.
 - GitHub Actions restores it from the repository secret `DEBUG_KEYSTORE_BASE64` (Settings → Secrets and variables →
-  Actions → Secrets), the output of `base64 -w0 ~/.android/debug.keystore`. Without the secret each run signs with a
-  new random key and the build logs a warning.
+  Actions → Secrets), the output of `base64 -w0 ~/.android/debug.keystore`, and signs with it through
+  `ABS_DEBUG_KEYSTORE` (`android/app/build.gradle`; also usable for local builds with another file). The run log
+  shows the APK's key in the "rename apk" step. Without the secret each run signs with a new random key and the
+  build logs a warning.
 
 Keep a backup of the keystore: GitHub secrets can't be read back, and without the file the next build can't update
 the installed app anymore.

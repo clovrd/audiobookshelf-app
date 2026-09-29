@@ -38,8 +38,9 @@ jobs:
       - name: copy to Android project
         run: npx cap sync
 
-      # Every runner generates a new random debug key, and Android refuses updates signed with a different key.
-      # The repository secret DEBUG_KEYSTORE_BASE64 holds the one shared key (see KIDS.md "Updating the app").
+      # Every runner has its own random debug key, and Android refuses updates signed with a different key.
+      # The repository secret DEBUG_KEYSTORE_BASE64 holds the one shared key, android/app/build.gradle signs with it
+      # through ABS_DEBUG_KEYSTORE (see KIDS.md "Updating the app").
       - name: restore signing key
         env:
           DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
@@ -47,12 +48,9 @@ jobs:
           if [ -z "$DEBUG_KEYSTORE_BASE64" ]; then
             echo "::warning::DEBUG_KEYSTORE_BASE64 is not set, this APK can't update an installed app"
           else
-            mkdir -p ~/.android
-            echo "$DEBUG_KEYSTORE_BASE64" | base64 -d > ~/.android/debug.keystore
-            # Should match the key the installed app was signed with (KIDS.md)
-            keytool -list -v -keystore ~/.android/debug.keystore -storepass android | grep -m1 'SHA256:'
+            echo "$DEBUG_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/debug.keystore"
+            echo "ABS_DEBUG_KEYSTORE=$RUNNER_TEMP/debug.keystore" >> "$GITHUB_ENV"
           fi
-          env | grep -E '^ANDROID_(USER_HOME|SDK_HOME|PREFS_ROOT|EMULATOR_HOME)=' || true
 
       - name: build Android app
         run: ./android/gradlew assembleDebug -p android --no-daemon
@@ -60,6 +58,8 @@ jobs:
       - name: rename apk
         working-directory: android/app/build/outputs/apk/debug/
         run: |
+          # Must match the key of the installed app (KIDS.md "Updating the app")
+          "$(ls -d "$ANDROID_HOME"/build-tools/*/ | tail -1)apksigner" verify --print-certs app-debug.apk | grep -m1 'SHA-256'
           build="$(date +%Y%m%d-%H%M%S)-$(git rev-parse --short HEAD)"
           name="audiobookshelf-${build}.apk"
           mv -v app-debug.apk "${name}"

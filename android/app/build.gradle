@@ -48,8 +48,25 @@ android {
       ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
     }
   }
+  // Debug builds must always be signed with the same key, otherwise an update can't be installed over the app and it
+  // has to be uninstalled (KIDS.md "Updating the app"). CI points ABS_DEBUG_KEYSTORE at the shared key, local builds
+  // use ~/.android/debug.keystore as usual.
+  def sharedDebugKeystore = System.getenv("ABS_DEBUG_KEYSTORE")
+  signingConfigs {
+    if (sharedDebugKeystore) {
+      sharedDebug {
+        storeFile file(sharedDebugKeystore)
+        storePassword "android"
+        keyAlias "androiddebugkey"
+        keyPassword "android"
+      }
+    }
+  }
   buildTypes {
     debug {
+      if (sharedDebugKeystore) {
+        signingConfig signingConfigs.sharedDebug
+      }
       applicationIdSuffix ".debug"
       versionNameSuffix "-debug"
       minifyEnabled false
