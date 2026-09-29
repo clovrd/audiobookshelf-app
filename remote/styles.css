@@ -438,8 +438,16 @@ button:disabled {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.device:not([data-has-item]) .link {
+.device:not([data-has-item]) .link--stop {
   visibility: hidden;
+}
+/* Only offline devices can be forgotten, an online one would publish its state again right away */
+.device[data-offline] .link--stop,
+.device:not([data-offline]) .link--forget {
+  display: none;
+}
+.link--forget {
+  color: var(--danger);
 }
 
 .device[data-offline] .device__now,

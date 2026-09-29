@@ -72,6 +72,8 @@ installed as a real app or used offline.
 - The position counts up locally between the device's updates (every 10 s while playing).
 - A device whose app is closed shows as **Offline** (the MQTT last will) with its last known state, and its
   controls are disabled.
+- **Forget device** (offline devices only) clears their retained `status`/`state` on the broker, for renamed or
+  test devices. The MQTT user needs write access to `<base>/#`. A device shows up again when it next connects.
 - Coming back to the app asks every device for a fresh state.
 
 ## Icons

@@ -168,6 +168,7 @@ function addDevice(base) {
     btn.addEventListener('click', () => {
       const cmd = btn.dataset.cmd;
       if (cmd === 'mute') return toggleMute(device);
+      if (cmd === 'forget') return forgetDevice(device);
       if (cmd === 'stop' && !confirm('Stop playback on this device?')) return;
       send(device, cmd);
     });
@@ -226,6 +227,22 @@ function toggleMute(device) {
     } catch {}
     send(device, 'volume', before);
   }
+}
+
+/**
+ * Clears the device's retained status and state on the broker. The broker passes the empty messages on to
+ * us too, which removes the card (onMessage). If it doesn't, the user may not write to these topics.
+ */
+function forgetDevice(device) {
+  if (!client || !client.connected) return;
+  if (!confirm(`Forget ${device.base}?\n\nIt shows up again when that device connects to the broker.`)) return;
+  client.publish(`${device.base}/status`, '', { qos: 1, retain: true });
+  client.publish(`${device.base}/state`, '', { qos: 1, retain: true });
+  setTimeout(() => {
+    if (devices.get(device.base) === device) {
+      alert(`The broker didn't clear ${device.base}. Does this MQTT user have write access to ${device.base}/#?`);
+    }
+  }, 3000);
 }
 
 function bindSeek(device) {
@@ -343,7 +360,7 @@ function render(device) {
   }[playerState] || playerState;
 
   // Offline devices can't receive commands, the retained state is only the last known one
-  el.querySelectorAll('button, input').forEach((c) => (c.disabled = offline));
+  el.querySelectorAll('button:not(.link--forget), input').forEach((c) => (c.disabled = offline));
   el.querySelectorAll('.transport button, .chip, [data-cmd="stop"]').forEach((c) => (c.disabled = offline || !hasItem));
   $('.seek', el).toggleAttribute('aria-disabled', offline || !hasItem || !st.duration);
 
