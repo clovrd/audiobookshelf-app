@@ -70,3 +70,17 @@ English names are often wrong, use `silben:` for those.
   `addListener('onVolumeChanged', ({ volume }) => …)` fires on hardware buttons and MQTT changes too.
 - `getBrightness()` / `setBrightness({ brightness })`: screen brightness 0.0–1.0 for this app only, while it is in the
   foreground; `null` goes back to the system brightness. No permission needed.
+
+## Updating the app
+
+Android only installs an update over an app signed with the same key, otherwise it has to be uninstalled first
+(which deletes the server login, favorites and MQTT settings). Debug builds are signed with
+`~/.android/debug.keystore` of the machine that builds them, so all builds have to use the same file:
+
+- Local builds (`scripts/build-apk.sh`) use the build machine's `~/.android/debug.keystore`.
+- GitHub Actions restores it from the repository secret `DEBUG_KEYSTORE_BASE64` (Settings → Secrets and variables →
+  Actions → Secrets), the output of `base64 -w0 ~/.android/debug.keystore`. Without the secret each run signs with a
+  new random key and the build logs a warning.
+
+Keep a backup of the keystore: GitHub secrets can't be read back, and without the file the next build can't update
+the installed app anymore.
