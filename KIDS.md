@@ -27,6 +27,9 @@ and everything that isn't a letter or digit replaced by a single `-`:
 | Benjamin Blümchen | `benjamin-bluemchen.png` |
 | Schleich - Horse Club | `schleich-horse-club.png` |
 
+`scripts/kids-logos.sh <folder>` renames logos named after their series (`Bibi & Tina.jpg`) to these file names and
+converts other formats to PNG (`-n` dry run, `-s 512` shrinks larger images, `-k` keeps the originals).
+
 `KIDS_LOGO_BASE_URL` is set when the app is built, e.g. `https://files.example.com/abs-logos`:
 
 - GitHub Actions: repository variable `KIDS_LOGO_BASE_URL` (Settings → Secrets and variables → Actions →
