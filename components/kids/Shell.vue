@@ -26,6 +26,7 @@
 <script>
 import { AbsAudioPlayer, AbsDeviceControls } from '@/plugins/capacitor'
 import { isOwnVolumeChange, resetBrightness, restoreBrightness } from '@/utils/kidsDevice'
+import { localItemToKidsItem } from '@/utils/kids'
 
 /**
  * Always mounted on kids pages (layouts/default.vue): mini player, player, sheets, volume HUD
@@ -95,8 +96,17 @@ export default {
       this.$store.commit('kids/set', { sheet: null, playerOpen: false, parentExited: true })
       this.$router.replace('/bookshelf')
     },
+    /** A download finished (components/widgets/DownloadProgressIndicator.vue) */
+    onNewLocalLibraryItem(localLibraryItem) {
+      const item = localItemToKidsItem(localLibraryItem)
+      if (item) this.$store.commit('kids/addLocalItem', item)
+    },
     async init() {
       this.$store.commit('kids/set', { parentExited: false })
+      // Cached library, downloads and their progress first, so the pages have something to show offline
+      this.$store.dispatch('kids/loadCache')
+      this.$store.dispatch('kids/loadLocalItems')
+      this.$store.dispatch('globals/loadLocalMediaProgress')
       restoreBrightness(this.$store, this.$localStore)
 
       const volume = await AbsDeviceControls.getVolume().catch(() => null)
@@ -115,10 +125,12 @@ export default {
   },
   mounted() {
     this.$eventBus.$on('kids-back', this.onBack)
+    this.$eventBus.$on('new-local-library-item', this.onNewLocalLibraryItem)
     this.init()
   },
   beforeDestroy() {
     this.$eventBus.$off('kids-back', this.onBack)
+    this.$eventBus.$off('new-local-library-item', this.onNewLocalLibraryItem)
     clearInterval(this.timeInterval)
     clearTimeout(this.volumeHudTimeout)
     this.listeners.forEach((listener) => listener.remove())

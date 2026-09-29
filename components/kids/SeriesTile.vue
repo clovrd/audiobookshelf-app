@@ -47,10 +47,10 @@ export default {
     firstBook() {
       // First book in series order that has a cover
       const books = sortSeriesBooks(this.series.books || [], this.series.id)
-      return books.find((b) => b.media?.coverPath) || books[0] || null
+      return books.find((b) => b.media?.coverPath || b.localCoverSrc || this.kidsLocalItem(b.id)?.localCoverSrc) || books[0] || null
     },
     fallbackCover() {
-      return this.$store.getters['globals/getLibraryItemCoverSrc'](this.firstBook, '/book_placeholder.jpg')
+      return this.kidsCoverFor(this.firstBook)
     },
     imageSrc() {
       return this.showLogo ? this.logoUrl : this.fallbackCover
@@ -65,9 +65,10 @@ export default {
     }
   },
   methods: {
-    onImageError() {
+    onImageError(event) {
+      // A cover that can't be loaded (offline): the placeholder
+      if (!this.showLogo) return this.kidsCoverError(event)
       // The logo doesn't exist (or can't be loaded): show the first cover instead
-      if (!this.showLogo) return
       markLogoMissing(this.logoUrl)
       this.logoFailed = true
     },

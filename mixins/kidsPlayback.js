@@ -1,9 +1,27 @@
 import { Capacitor } from '@capacitor/core'
-import { AbsAudioPlayer } from '@/plugins/capacitor'
+import { AbsAudioPlayer, AbsDownloader } from '@/plugins/capacitor'
 import { cleanEpisodeTitle, getItemSeries } from '@/utils/kids'
+
+const PLACEHOLDER = '/book_placeholder.jpg'
+// A download counts as starting for this long until the native queue reports it
+const DOWNLOAD_START_MS = 20000
+
+/** Downloads go to the app's internal storage unless a parent set up a folder for books in the normal UI */
+async function getDownloadFolderId(db) {
+  const folders = ((await db.getLocalFolders().catch(() => null)) || []).filter((f) => f.mediaType === 'book')
+  if (!folders.length || folders.some((f) => f.id === 'internal-book')) return 'internal-book'
+  return folders[0].id
+}
 
 export default {
   computed: {
+    /** Connected to the server, otherwise only downloaded episodes can play */
+    kidsOnline() {
+      return this.$store.getters['kids/isOnline']
+    },
+    kidsCanDownload() {
+      return this.kidsOnline && this.$store.getters['user/getUserCanDownload']
+    },
     kidsSession() {
       return this.$store.state.currentPlaybackSession
     },
@@ -56,6 +74,63 @@ export default {
     }
   },
   methods: {
+    /** Downloaded copy of a server item, see localItemToKidsItem */
+    kidsLocalItem(libraryItemId) {
+      return this.$store.getters['kids/getLocalItem'](libraryItemId)
+    },
+    /** Online everything plays, offline only downloads */
+    kidsIsAvailable(libraryItemId) {
+      return this.kidsOnline || !!this.kidsLocalItem(libraryItemId)
+    },
+    /** The downloaded cover when there is one, it also works offline */
+    kidsCoverFor(libraryItem) {
+      if (!libraryItem) return PLACEHOLDER
+      const localCover = libraryItem.localCoverSrc || this.kidsLocalItem(libraryItem.id)?.localCoverSrc
+      if (localCover) return localCover
+      return this.$store.getters['globals/getLibraryItemCoverSrc'](libraryItem, PLACEHOLDER)
+    },
+    /** Replaces a cover that failed to load, e.g. a server cover while offline */
+    kidsCoverError(event) {
+      if (!event.target.src.endsWith(PLACEHOLDER)) event.target.src = PLACEHOLDER
+    },
+    /**
+     * Progress of a book: the server's, or the one saved on the device for downloads, whichever is newer.
+     * Offline only the device's exists.
+     */
+    kidsProgressOf(libraryItemId) {
+      const server = this.$store.getters['user/getUserMediaProgress'](libraryItemId)
+      const local = this.$store.getters['globals/getLocalMediaProgressByServerItemId'](libraryItemId)
+      if (!server) return local || null
+      if (!local) return server
+      return (local.lastUpdate || 0) > (server.lastUpdate || 0) ? local : server
+    },
+    /** null, or { progress: 0-1 } while the episode is downloading */
+    kidsDownloadState(libraryItemId) {
+      if (this.kidsLocalItem(libraryItemId)) return null
+      const download = this.$store.getters['globals/getDownloadItem'](libraryItemId)
+      if (download) return { progress: download.itemProgress || 0 }
+      const requestedAt = this.$store.state.kids.requestedDownloads[libraryItemId]
+      if (requestedAt && Date.now() - requestedAt < DOWNLOAD_START_MS) return { progress: 0 }
+      return null
+    },
+    /** Downloads the episodes that aren't downloaded or downloading yet */
+    async kidsDownload(libraryItemIds) {
+      if (!this.kidsCanDownload) return
+      const ids = libraryItemIds.filter((id) => !this.kidsLocalItem(id) && !this.kidsDownloadState(id))
+      if (!ids.length) return
+      await this.$hapticsImpact()
+      this.$store.commit('kids/requestDownloads', ids)
+      const localFolderId = await getDownloadFolderId(this.$db)
+      for (const libraryItemId of ids) {
+        const result = await AbsDownloader.downloadLibraryItem({ libraryItemId, localFolderId }).catch((error) => ({ error: error.message || String(error) }))
+        if (result?.error) {
+          console.error('[kids] Download failed', libraryItemId, result.error)
+          this.$store.commit('kids/clearRequestedDownloads', ids)
+          this.$toast.error(result.error)
+          return
+        }
+      }
+    },
     kidsPlayPause() {
       this.$hapticsImpact()
       return AbsAudioPlayer.playPause()
@@ -82,6 +157,7 @@ export default {
      */
     async kidsPlay(libraryItem, { restart = false } = {}) {
       if (!libraryItem || this.$store.state.playerIsStartingPlayback) return
+      if (!this.kidsIsAvailable(libraryItem.id)) return
       await this.$hapticsImpact()
       this.$store.commit('kids/set', { playerOpen: true })
 

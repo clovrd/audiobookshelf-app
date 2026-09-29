@@ -11,6 +11,10 @@
     </div>
 
     <div v-if="loading" class="k-home__loading"><ui-loading-indicator /></div>
+    <div v-else-if="!series.length" class="k-home__empty">
+      <span class="material-symbols" style="font-size: 56px">{{ kidsOnline ? 'library_music' : 'cloud_off' }}</span>
+      <p>{{ kidsOnline ? 'Noch keine Hörbücher' : 'Keine Verbindung zum Hörbuch-Server' }}</p>
+    </div>
     <template v-else>
       <section v-if="continueListening.length" class="k-section">
         <h2 class="k-section__head"><span class="material-symbols" style="font-size: 30px">play_arrow</span>Weiterhören</h2>
@@ -38,15 +42,14 @@
 
 <script>
 import { getItemSeries, parseSeriesSyllables } from '@/utils/kids'
+import kidsPlayback from '@/mixins/kidsPlayback'
 
 const PARENT_HOLD_MS = 3000
 
 export default {
+  mixins: [kidsPlayback],
   data() {
     return {
-      loading: false,
-      series: [],
-      continueListening: [],
       clock: '',
       clockInterval: null,
       parentHold: 0,
@@ -59,6 +62,26 @@ export default {
     },
     loadKey() {
       return `${this.currentLibraryId}|${this.$store.state.user.serverConnectionConfig?.id || ''}`
+    },
+    /** Cached server series plus downloaded ones (store/kids.js), shown right away and refreshed in the background */
+    series() {
+      return this.$store.getters['kids/allSeries']
+    },
+    /** Only until the cache is read, or while there is nothing at all yet but a first refresh is running */
+    loading() {
+      const kids = this.$store.state.kids
+      return !kids.cacheLoaded || (!this.series.length && (kids.refreshing || this.$store.state.attemptingConnection))
+    },
+    continueListening() {
+      const cached = this.$store.state.kids.continueListening.filter((item) => !this.kidsProgressOf(item.id)?.isFinished)
+      // Downloads listened to offline aren't in the server's list yet
+      const ids = new Set(cached.map((item) => item.id))
+      const local = this.$store.state.kids.localItems.filter((item) => {
+        if (ids.has(item.id)) return false
+        const progress = this.kidsProgressOf(item.id)
+        return progress && !progress.isFinished && progress.currentTime > 0
+      })
+      return [...local, ...cached]
     },
     favoriteSeries() {
       // In the order they were added
@@ -106,28 +129,10 @@ export default {
       this.parentHoldStart = null
       this.parentHold = 0
     },
-    async fetchSeries() {
-      const payload = await this.$nativeHttp.get(`/api/libraries/${this.currentLibraryId}/series?sort=name&desc=0&limit=1000&page=0&minified=1`).catch((error) => {
-        console.error('[kids] Failed to fetch series', error)
-        return null
-      })
-      return payload?.results || []
-    },
-    async fetchContinueListening() {
-      const shelves = await this.$nativeHttp.get(`/api/libraries/${this.currentLibraryId}/personalized?minified=1`, { connectTimeout: 10000 }).catch((error) => {
-        console.error('[kids] Failed to fetch personalized shelves', error)
-        return null
-      })
-      return (Array.isArray(shelves) && shelves.find((s) => s.id === 'continue-listening')?.entities) || []
-    },
     async load() {
-      if (!this.currentLibraryId || !this.$store.state.user.serverConnectionConfig) return
-      this.loading = !this.series.length
-      const [series, continueListening, favoriteSeriesIds] = await Promise.all([this.fetchSeries(), this.fetchContinueListening(), this.$localStore.getKidsFavoriteSeries()])
-      this.series = series
-      this.continueListening = continueListening
-      this.$store.commit('kids/set', { favoriteSeriesIds })
-      this.loading = false
+      this.$store.commit('kids/set', { favoriteSeriesIds: await this.$localStore.getKidsFavoriteSeries() })
+      await this.$store.dispatch('kids/loadCache')
+      this.$store.dispatch('kids/refreshLibrary')
     }
   },
   mounted() {
@@ -182,6 +187,15 @@ export default {
   display: flex;
   justify-content: center;
   padding: 80px 0;
+}
+.k-home__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 80px 0;
+  font-size: 20px;
+  color: var(--color-ink-muted);
 }
 .k-section {
   margin-bottom: 36px;

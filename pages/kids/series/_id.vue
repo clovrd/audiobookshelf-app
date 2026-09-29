@@ -15,8 +15,12 @@
             <button class="k-btn k-series__favorite" :class="isFavorite ? 'k-series__favorite--on' : 'k-btn--outline'" @click="toggleFavorite">
               <span class="material-symbols" :class="{ fill: isFavorite }" style="font-size: 44px">favorite</span>
             </button>
-            <span v-if="!loading" class="k-series__count num">{{ books.length }} Folgen</span>
+            <span v-if="books.length" class="k-series__count num">{{ books.length }} Folgen</span>
           </div>
+          <button v-if="showDownloadAll" class="k-series__download" :class="{ 'k-series__download--done': allDownloaded }" :disabled="allDownloaded || downloadingCount > 0" @click="downloadAll">
+            <span class="material-symbols" :class="{ 'k-pulse': downloadingCount > 0 }" style="font-size: 30px">{{ allDownloaded ? 'download_done' : downloadingCount ? 'downloading' : 'download' }}</span>
+            <span>{{ allDownloaded ? 'Alle geladen' : downloadingCount ? `Lädt … noch ${downloadingCount}` : 'Alle laden' }}</span>
+          </button>
         </template>
       </div>
 
@@ -31,36 +35,65 @@
 </template>
 
 <script>
+import kidsPlayback from '@/mixins/kidsPlayback'
 import { getSeriesSequence, parseSeriesSyllables, sortSeriesBooks } from '@/utils/kids'
 
 export default {
+  mixins: [kidsPlayback],
   data() {
     return {
-      loading: false,
-      series: null,
-      books: []
+      refreshing: false,
+      // Description from the server, for the syllables
+      description: undefined
     }
   },
   computed: {
     seriesId() {
       return this.$route.params.id
     },
+    /** From the cached series list, or from the downloads when offline */
+    series() {
+      return this.$store.getters['kids/allSeries'].find((s) => s.id === this.seriesId) || null
+    },
+    /** Cached episodes plus downloaded ones, refreshed in the background (store/kids.js) */
+    books() {
+      return sortSeriesBooks(this.$store.getters['kids/seriesBooks'](this.seriesId), this.seriesId)
+    },
+    loading() {
+      return !this.books.length && this.refreshing
+    },
     seriesWithBooks() {
-      return { ...this.series, books: this.books }
+      return { ...this.series, books: this.books.length ? this.books : this.series?.books || [] }
     },
     syllablesOverride() {
-      return parseSeriesSyllables(this.series?.description)
+      return parseSeriesSyllables(this.description !== undefined ? this.description : this.series?.description)
     },
     favoriteIds() {
       return this.$store.state.kids.favoriteSeriesIds
     },
     isFavorite() {
       return this.favoriteIds.includes(this.seriesId)
+    },
+    notDownloaded() {
+      return this.books.filter((b) => !this.kidsLocalItem(b.id))
+    },
+    allDownloaded() {
+      return this.books.length > 0 && !this.notDownloaded.length
+    },
+    downloadingCount() {
+      return this.notDownloaded.filter((b) => this.kidsDownloadState(b.id)).length
+    },
+    /** Also shown offline once everything is downloaded, as a hint that the series works without the server */
+    showDownloadAll() {
+      return this.books.length > 0 && (this.kidsCanDownload || this.allDownloaded)
     }
   },
   methods: {
     sequenceOf(item) {
       return getSeriesSequence(item, this.seriesId)
+    },
+    downloadAll() {
+      this.kidsDownload(this.notDownloaded.map((b) => b.id))
     },
     async toggleFavorite() {
       await this.$hapticsImpact()
@@ -70,26 +103,12 @@ export default {
       await this.$localStore.setKidsFavoriteSeries(favoriteSeriesIds)
     },
     async load() {
-      this.loading = true
       this.$store.commit('kids/set', { favoriteSeriesIds: await this.$localStore.getKidsFavoriteSeries() })
-
-      this.series = await this.$nativeHttp.get(`/api/series/${this.seriesId}`).catch((error) => {
-        console.error('[kids] Failed to fetch series', error)
-        return null
-      })
-      if (!this.series) {
-        this.loading = false
-        return
-      }
-
-      // Not minified so the items include their series sequence and duration
-      const filter = `series.${this.$encode(this.seriesId)}`
-      const payload = await this.$nativeHttp.get(`/api/libraries/${this.series.libraryId}/items?filter=${encodeURIComponent(filter)}&limit=1000&page=0`).catch((error) => {
-        console.error('[kids] Failed to fetch series books', error)
-        return null
-      })
-      this.books = sortSeriesBooks(payload?.results || [], this.seriesId)
-      this.loading = false
+      await this.$store.dispatch('kids/loadCache')
+      this.refreshing = true
+      const series = await this.$store.dispatch('kids/refreshSeriesBooks', this.seriesId)
+      if (series) this.description = series.description || null
+      this.refreshing = false
     }
   },
   mounted() {
@@ -155,6 +174,27 @@ export default {
 .k-series__favorite--on {
   background: var(--color-accent);
   color: var(--color-on-accent);
+}
+.k-series__download {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 64px;
+  margin-top: 16px;
+  padding: 0 24px 0 18px;
+  border-radius: 9999px;
+  background: var(--color-cool);
+  color: var(--color-ink);
+  font-size: 20px;
+  font-weight: 700;
+  transition: transform 140ms var(--ease);
+}
+.k-series__download:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.k-series__download--done {
+  background: var(--color-positive-bg);
+  color: var(--color-positive);
 }
 .k-series__count {
   font-size: 20px;

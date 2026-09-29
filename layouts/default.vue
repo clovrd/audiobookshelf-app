@@ -7,6 +7,8 @@
     <!-- Stays mounted in the kids mode because it connects to the native player, the kids UI has its own player -->
     <app-audio-player-container v-show="!isKidsMode" ref="streamContainer" />
     <kids-shell v-if="isKidsMode" />
+    <!-- The app bar with the download indicator is hidden in the kids mode, its listeners keep the download state -->
+    <div v-if="isKidsMode" hidden><widgets-download-progress-indicator /></div>
     <modals-libraries-modal />
     <modals-playlists-add-create-modal />
     <modals-select-local-folder-modal />

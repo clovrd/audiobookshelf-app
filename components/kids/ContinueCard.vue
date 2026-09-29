@@ -1,7 +1,7 @@
 <template>
-  <div class="k-continue k-press" @click="kidsPlay(libraryItem)">
+  <div class="k-continue k-press" :class="{ 'k-continue--unavailable': !kidsIsAvailable(libraryItem.id) }" @click="kidsPlay(libraryItem)">
     <div class="k-cover" :class="{ 'k-continue__cover--current': isCurrent }">
-      <img :src="coverSrc" loading="lazy" />
+      <img :src="coverSrc" loading="lazy" @error="kidsCoverError" />
       <span v-if="series && series.sequence" class="k-stamp num k-continue__stamp">{{ series.sequence }}</span>
       <div v-if="isCurrent" class="k-continue__badge"><kids-equalizer :playing="kidsIsPlaying" /></div>
     </div>
@@ -31,14 +31,14 @@ export default {
       return this.libraryItem.media?.metadata?.title || ''
     },
     coverSrc() {
-      return this.$store.getters['globals/getLibraryItemCoverSrc'](this.libraryItem, '/book_placeholder.jpg')
+      return this.kidsCoverFor(this.libraryItem)
     },
     isCurrent() {
       return this.kidsIsCurrent(this.libraryItem.id)
     },
     progressPercent() {
       if (this.isCurrent && this.kidsDuration) return Math.min(100, (this.kidsCurrentTime / this.kidsDuration) * 100)
-      const progress = this.$store.getters['user/getUserMediaProgress'](this.libraryItem.id)
+      const progress = this.kidsProgressOf(this.libraryItem.id)
       return Math.min(1, Math.max(0, progress?.progress || 0)) * 100
     }
   }
@@ -49,6 +49,13 @@ export default {
 .k-continue {
   width: 264px;
   flex-shrink: 0;
+}
+/* Offline and not downloaded */
+.k-continue--unavailable {
+  opacity: 0.4;
+}
+.k-continue--unavailable.k-press:active {
+  transform: none;
 }
 .k-continue__cover--current {
   overflow: visible;

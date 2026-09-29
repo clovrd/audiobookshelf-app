@@ -10,6 +10,21 @@ Episode titles on the series page and in the player drop the series name and epi
 (`Bibi Blocksberg - Folge 12 - Hexen gibt es doch` → `Hexen gibt es doch`), since both are shown anyway. When nothing
 else is left the subtitle is used.
 
+## Downloads and offline
+
+- Every episode tile has a download button, the series page has **Alle laden** for all episodes that aren't
+  downloaded yet. Both only show when connected and the ABS user may download. Downloads go to the app's internal
+  storage, or to the first folder for books set up in the normal UI (Downloads → local folders).
+  Up to 3 download at the same time, the rest wait in the queue.
+- Downloaded episodes show a green check next to their length, while downloading a ring shows the progress.
+- Playing always uses the downloaded copy when there is one.
+- The series list, "Weiterhören" and the episodes of opened series are saved on the device (`kidsLibraryCache`).
+  The kids UI shows them right away and refreshes in the background (the home at most every 30 s), so going back
+  to the home doesn't reload everything.
+- Without a connection to the server (offline, or away from home without VPN) the saved library is shown.
+  Downloaded episodes play; the others are greyed out with a cloud icon. Series that were never loaded from the
+  server but have downloads show up too. Progress made offline is synced by the app when the server is back.
+
 ## Series logos
 
 Tiles show a square logo from `<KIDS_LOGO_BASE_URL>/<slug>.png`, falling back to the cover of the first book (in
@@ -34,7 +49,7 @@ converts other formats to PNG (`-n` dry run, `-s 512` shrinks larger images, `-k
 `KIDS_LOGO_BASE_URL` is set when the app is built, e.g. `https://files.example.com/abs-logos`:
 
 - GitHub Actions: repository variable `KIDS_LOGO_BASE_URL` (Settings → Secrets and variables → Actions →
-  Variables), used by `build-apk.yml` and `deploy-apk.yml`
+  Variables), used by `build-apk.yml`
 - Local builds: `KIDS_LOGO_BASE_URL=https://files.example.com/abs-logos ./scripts/build-apk.sh`
 
 Without it, the tiles always show the first cover. A logo that fails to load (404) isn't requested again until the

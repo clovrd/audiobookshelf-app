@@ -1,4 +1,5 @@
 // Helpers for the kids UI (pages/kids)
+import { Capacitor } from '@capacitor/core'
 
 /**
  * Kids UI settings ABS has no fields for are stored as "key: value" lines in the series description
@@ -224,6 +225,70 @@ export function getEpisodeTitle(libraryItem, seriesName, sequence) {
 /** Same for a title string, e.g. the playback session's displayTitle */
 export function cleanEpisodeTitle(title, seriesName, sequence) {
   return stripSeriesFromTitle(title, seriesName, sequence)
+}
+
+/**
+ * Only what the kids UI shows of a library item, for the cache on the device (store/kids.js).
+ * Full items include all audio files and chapters, which would make the cache huge.
+ *
+ * @param {Object} libraryItem server library item, minified or not
+ * @returns {Object}
+ */
+export function slimLibraryItem(libraryItem) {
+  const media = libraryItem.media || {}
+  const metadata = media.metadata || {}
+  return {
+    id: libraryItem.id,
+    libraryId: libraryItem.libraryId,
+    mediaType: libraryItem.mediaType,
+    media: {
+      coverPath: media.coverPath || null,
+      duration: media.duration || 0,
+      metadata: {
+        title: metadata.title || '',
+        subtitle: metadata.subtitle || null,
+        series: metadata.series || null,
+        seriesName: metadata.seriesName || null
+      }
+    }
+  }
+}
+
+/** A series from the series list with slim books (they are only used for the tile's cover) */
+export function slimSeries(series) {
+  const slim = { id: series.id, name: series.name, books: (series.books || []).map(slimLibraryItem) }
+  if (series.description !== undefined) slim.description = series.description
+  return slim
+}
+
+/**
+ * A downloaded book (local library item) in the shape of a slim server item, with its server id so it replaces
+ * or completes the server item. Books that aren't linked to a server item are left out.
+ *
+ * @param {Object} localLibraryItem
+ * @returns {Object|null}
+ */
+export function localItemToKidsItem(localLibraryItem) {
+  if (!localLibraryItem?.libraryItemId || localLibraryItem.mediaType !== 'book') return null
+  const media = localLibraryItem.media || {}
+  const metadata = media.metadata || {}
+  const duration = media.duration || (media.tracks || []).reduce((total, track) => total + (track.duration || 0), 0)
+  return {
+    id: localLibraryItem.libraryItemId,
+    localLibraryItemId: localLibraryItem.id,
+    mediaType: 'book',
+    localCoverSrc: localLibraryItem.coverContentUrl ? Capacitor.convertFileSrc(localLibraryItem.coverContentUrl) : null,
+    media: {
+      coverPath: null,
+      duration,
+      metadata: {
+        title: metadata.title || '',
+        subtitle: metadata.subtitle || null,
+        series: metadata.series || null,
+        seriesName: metadata.seriesName || null
+      }
+    }
+  }
 }
 
 /** 1234 -> "20:34", 4000 -> "1:06:40" */
