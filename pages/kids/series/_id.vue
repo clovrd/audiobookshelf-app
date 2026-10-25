@@ -21,6 +21,10 @@
             <span class="material-symbols" :class="{ 'k-pulse': downloadingCount > 0 }" style="font-size: 30px">{{ allDownloaded ? 'download_done' : downloadingCount ? 'downloading' : 'download' }}</span>
             <span>{{ allDownloaded ? 'Alle geladen' : downloadingCount ? `Lädt … noch ${downloadingCount}` : 'Alle laden' }}</span>
           </button>
+          <button v-if="downloaded.length && !downloadingCount" class="k-series__delete" @click="deleteAll">
+            <span class="material-symbols" style="font-size: 28px">delete</span>
+            <span>{{ allDownloaded ? 'Alle löschen' : `${downloaded.length} löschen` }}</span>
+          </button>
         </template>
       </div>
 
@@ -36,7 +40,7 @@
 
 <script>
 import kidsPlayback from '@/mixins/kidsPlayback'
-import { getSeriesSequence, parseSeriesSyllables, sortSeriesBooks } from '@/utils/kids'
+import { getEpisodeTitle, getSeriesSequence, parseSeriesSyllables, sortSeriesBooks } from '@/utils/kids'
 
 export default {
   mixins: [kidsPlayback],
@@ -77,6 +81,9 @@ export default {
     notDownloaded() {
       return this.books.filter((b) => !this.kidsLocalItem(b.id))
     },
+    downloaded() {
+      return this.books.filter((b) => this.kidsLocalItem(b.id))
+    },
     allDownloaded() {
       return this.books.length > 0 && !this.notDownloaded.length
     },
@@ -94,6 +101,11 @@ export default {
     },
     downloadAll() {
       this.kidsDownload(this.notDownloaded.map((b) => b.id))
+    },
+    deleteAll() {
+      const ids = this.downloaded.map((b) => b.id)
+      const title = ids.length === 1 ? getEpisodeTitle(this.downloaded[0], this.series?.name, this.sequenceOf(this.downloaded[0])) : null
+      this.kidsAskDelete(ids, title)
     },
     async toggleFavorite() {
       await this.$hapticsImpact()
@@ -195,6 +207,23 @@ export default {
 .k-series__download--done {
   background: var(--color-positive-bg);
   color: var(--color-positive);
+}
+.k-series__delete {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 56px;
+  margin-top: 12px;
+  padding: 0 22px 0 16px;
+  border: 2px solid var(--color-line);
+  border-radius: 9999px;
+  color: var(--color-ink-muted);
+  font-size: 18px;
+  font-weight: 700;
+  transition: transform 140ms var(--ease);
+}
+.k-series__delete:active {
+  transform: scale(0.97);
 }
 .k-series__count {
   font-size: 20px;

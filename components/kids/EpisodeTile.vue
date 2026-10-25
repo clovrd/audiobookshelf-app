@@ -15,7 +15,7 @@
     </div>
     <span v-if="isFinished" class="k-episode__done"><span class="material-symbols" style="font-size: 26px">check</span></span>
 
-    <!-- Download: its own tap target, the rest of the tile plays -->
+    <!-- Download / delete: its own tap target, the rest of the tile plays -->
     <span v-if="downloadState" class="k-episode__action" @click.stop>
       <svg class="k-episode__ring" viewBox="0 0 48 48" aria-hidden="true">
         <circle cx="24" cy="24" r="20" class="k-episode__ring-track" />
@@ -25,6 +25,9 @@
     </span>
     <button v-else-if="!isDownloaded && kidsCanDownload" class="k-episode__action k-episode__download" aria-label="Laden" @click.stop="kidsDownload([libraryItem.id])">
       <span class="material-symbols" style="font-size: 28px">download</span>
+    </button>
+    <button v-else-if="isDownloaded" class="k-episode__action k-episode__delete" aria-label="Löschen" @click.stop="kidsAskDelete([libraryItem.id], title)">
+      <span class="material-symbols" style="font-size: 26px">delete</span>
     </button>
     <span v-else-if="!isAvailable" class="k-episode__action k-episode__offline" aria-label="Nicht geladen"><span class="material-symbols" style="font-size: 26px">cloud_off</span></span>
   </div>
@@ -218,6 +221,14 @@ export default {
   transition: transform 140ms var(--ease);
 }
 .k-episode__download:active {
+  transform: scale(0.94);
+}
+.k-episode__delete {
+  color: var(--color-ink-muted);
+  border: 2px solid var(--color-line);
+  transition: transform 140ms var(--ease);
+}
+.k-episode__delete:active {
   transform: scale(0.94);
 }
 .k-episode__offline {

@@ -11,6 +11,7 @@
       <kids-brightness-row :row-height="88" class="k-shell__brightness" />
     </kids-sheet>
     <kids-parent-sheet v-else-if="sheet === 'parent'" @close="closeSheet" @exit="exitKidsMode" />
+    <kids-delete-sheet v-else-if="sheet === 'delete'" @close="closeSheet" />
 
     <transition name="k-hud">
       <div v-if="volumeHudVisible" class="k-hud">
@@ -66,7 +67,7 @@ export default {
   },
   methods: {
     closeSheet() {
-      this.$store.commit('kids/set', { sheet: null })
+      this.$store.commit('kids/set', { sheet: null, deleteRequest: null })
     },
     async updateTime() {
       if (!this.hasSession) return

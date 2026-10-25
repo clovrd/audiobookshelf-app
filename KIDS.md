@@ -17,6 +17,10 @@ else is left the subtitle is used.
   storage, or to the first folder for books set up in the normal UI (Downloads → local folders).
   Up to 3 download at the same time, the rest wait in the queue.
 - Downloaded episodes show a green check next to their length, while downloading a ring shows the progress.
+- Kids can delete downloads themselves: downloaded episodes have a trash button, the series page has
+  **Alle löschen** (or **N löschen** when only some are downloaded). Both ask first on a big Ja/Nein sheet, which
+  also warns when the tablet is offline. Deleting the episode that is playing stops playback. Listening progress is
+  kept, also progress made offline that isn't synced yet.
 - Playing always uses the downloaded copy when there is one.
 - The series list, "Weiterhören" and the episodes of opened series are saved on the device (`kidsLibraryCache`).
   The kids UI shows them right away and refreshes in the background (the home at most every 30 s), so going back
