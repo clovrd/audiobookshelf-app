@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core'
-import { AbsAudioPlayer, AbsDownloader } from '@/plugins/capacitor'
+import { AbsAudioPlayer, AbsDownloader, AbsFileSystem } from '@/plugins/capacitor'
 import { cleanEpisodeTitle, getItemSeries } from '@/utils/kids'
 
 const PLACEHOLDER = '/book_placeholder.jpg'
@@ -130,6 +130,45 @@ export default {
           return
         }
       }
+    },
+    /** Opens the delete sheet (components/kids/DeleteSheet.vue) for downloaded episodes */
+    async kidsAskDelete(libraryItemIds, title = null) {
+      const ids = libraryItemIds.filter((id) => this.kidsLocalItem(id))
+      if (!ids.length) return
+      await this.$hapticsImpact()
+      this.$store.commit('kids/set', { sheet: 'delete', deleteRequest: { ids, title: ids.length === 1 ? title : null } })
+    },
+    /**
+     * Deletes the downloaded copies. Progress stays (also progress made offline that isn't synced yet).
+     * Stops playback first when it plays one of the files.
+     */
+    async kidsDeleteDownloads(libraryItemIds) {
+      const items = libraryItemIds.map((id) => this.kidsLocalItem(id)).filter(Boolean)
+      if (!items.length) return
+      const session = this.kidsSession
+      if (session?.localLibraryItem && items.some((item) => item.id === this.kidsCurrentItemId())) {
+        this.$store.commit('setPlaybackSession', null)
+        await AbsAudioPlayer.closePlayback().catch(() => {})
+      }
+
+      const deleted = []
+      let failed = 0
+      for (const item of items) {
+        const localLibraryItem = await this.$db.getLocalLibraryItem(item.localLibraryItemId).catch(() => null)
+        // Already gone from the device
+        if (!localLibraryItem) {
+          deleted.push(item.id)
+          continue
+        }
+        const result = await AbsFileSystem.deleteItem(localLibraryItem).catch((error) => {
+          console.error('[kids] Delete failed', item.id, error)
+          return null
+        })
+        if (result?.success) deleted.push(item.id)
+        else failed++
+      }
+      if (deleted.length) this.$store.commit('kids/removeLocalItems', deleted)
+      if (failed) this.$toast.error(failed === 1 ? 'Eine Folge konnte nicht gelöscht werden' : `${failed} Folgen konnten nicht gelöscht werden`)
     },
     kidsPlayPause() {
       this.$hapticsImpact()

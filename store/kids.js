@@ -9,8 +9,10 @@ const REFRESH_INTERVAL_MS = 30 * 1000
 
 export const state = () => ({
   playerOpen: false,
-  // null | 'sleep' | 'light' | 'parent'
+  // null | 'sleep' | 'light' | 'parent' | 'delete'
   sheet: null,
+  // Downloads the delete sheet asks about: { ids: [libraryItemId], title } (title only for a single episode)
+  deleteRequest: null,
   // Seconds in the whole book, polled from the native player
   currentTime: 0,
   // Seconds remaining, 0 when no sleep timer is running
@@ -88,6 +90,9 @@ export const mutations = {
     state.localItems = [...state.localItems.filter((i) => i.id !== item.id), item]
     const { [item.id]: _, ...requested } = state.requestedDownloads
     state.requestedDownloads = requested
+  },
+  removeLocalItems(state, ids) {
+    state.localItems = state.localItems.filter((i) => !ids.includes(i.id))
   },
   requestDownloads(state, ids) {
     const requested = { ...state.requestedDownloads }
